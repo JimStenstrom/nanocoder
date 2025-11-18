@@ -24,6 +24,24 @@ function parseAPIError(error: unknown): string {
 
 	const errorMessage = error.message;
 
+	// Handle Ollama-specific unmarshal/JSON parsing errors
+	if (
+		errorMessage.includes('unmarshal') ||
+		(errorMessage.includes('invalid character') &&
+			errorMessage.includes('after top-level value'))
+	) {
+		return (
+			'Ollama server error: The model returned malformed JSON. ' +
+			'This usually indicates an issue with the Ollama server or model. ' +
+			'Try:\n' +
+			'  1. Restart Ollama: systemctl restart ollama (Linux) or restart the Ollama app\n' +
+			'  2. Re-pull the model: ollama pull <model-name>\n' +
+			'  3. Check Ollama logs for more details\n' +
+			'  4. Try a different model to see if the issue is model-specific\n' +
+			`Original error: ${errorMessage}`
+		);
+	}
+
 	// Extract status code and clean message from common error patterns
 	const statusMatch = errorMessage.match(
 		/(?:Error: )?(\d{3})\s+(?:\d{3}\s+)?(?:Bad Request|[^:]+):\s*(.+)/i,
@@ -138,12 +156,15 @@ export class AISDKClient implements LLMClient {
 	private providerConfig: AIProviderConfig;
 	private undiciAgent: Agent;
 	private cachedContextSize: number;
+	private maxRetries: number;
 
 	constructor(providerConfig: AIProviderConfig) {
 		this.providerConfig = providerConfig;
 		this.availableModels = providerConfig.models;
 		this.currentModel = providerConfig.models[0] || '';
 		this.cachedContextSize = 0;
+		// Default to 2 retries (same as AI SDK default), or use configured value
+		this.maxRetries = providerConfig.maxRetries ?? 2;
 
 		const {requestTimeout, socketTimeout, connectionPool} = this.providerConfig;
 		const resolvedSocketTimeout =
@@ -263,6 +284,7 @@ export class AISDKClient implements LLMClient {
 				messages: modelMessages,
 				tools: aiTools,
 				abortSignal: signal,
+				maxRetries: this.maxRetries,
 			});
 
 			// Extract tool calls from result
@@ -384,6 +406,7 @@ export class AISDKClient implements LLMClient {
 				messages: modelMessages,
 				tools: aiTools,
 				abortSignal: signal,
+				maxRetries: this.maxRetries,
 			});
 
 			// Stream tokens
