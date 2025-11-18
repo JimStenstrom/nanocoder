@@ -12,7 +12,9 @@ pub mod registry;
 pub mod search;
 pub mod web;
 
+pub use bash::ExecuteBashTool;
 pub use file_ops::{
     CreateFileTool, DeleteLinesTool, InsertLinesTool, ReadFileTool, ReplaceLinesTool,
 };
 pub use registry::ToolRegistry;
+pub use search::{FindFilesTool, SearchFileContentsTool};
