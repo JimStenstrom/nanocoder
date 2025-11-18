@@ -23,3 +23,4 @@ pub use file_ops::{
 };
 pub use registry::ToolRegistry;
 pub use search::{FindFilesTool, SearchFileContentsTool};
+pub use web::{WebFetchTool, WebSearchTool};
