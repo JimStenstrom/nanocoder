@@ -12,8 +12,8 @@ pub mod paths;
 pub mod preferences;
 pub mod provider;
 
-pub use config::{Config, load_config};
-pub use env::substitute_env_vars;
-pub use paths::{get_config_path, get_preferences_path};
+pub use config::{Config, load_config, load_env, get_closest_config_file};
+pub use env::{substitute_env_vars, substitute_env_vars_json};
+pub use paths::{get_app_data_path, get_config_path, get_preferences_path};
 pub use preferences::Preferences;
-pub use provider::ProviderConfig;
+pub use provider::{ConnectionPoolConfig, McpServerConfig, ProviderConfig};
