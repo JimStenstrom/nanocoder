@@ -1,0 +1,27 @@
+[package]
+name = "nanocoder-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "nanocoder"
+path = "src/main.rs"
+
+[dependencies]
+nanocoder-core = { path = "../nanocoder-core" }
+nanocoder-config = { path = "../nanocoder-config" }
+nanocoder-tools = { path = "../nanocoder-tools" }
+nanocoder-ai = { path = "../nanocoder-ai" }
+nanocoder-tokenization = { path = "../nanocoder-tokenization" }
+nanocoder-mcp = { path = "../nanocoder-mcp" }
+
+tokio = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

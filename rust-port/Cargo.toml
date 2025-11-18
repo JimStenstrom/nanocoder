@@ -1,0 +1,82 @@
+[workspace]
+members = [
+    "crates/nanocoder-core",
+    "crates/nanocoder-config",
+    "crates/nanocoder-tools",
+    "crates/nanocoder-ai",
+    "crates/nanocoder-tokenization",
+    "crates/nanocoder-mcp",
+    "crates/nanocoder-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "1.16.4"
+edition = "2021"
+license = "MIT"
+authors = ["Nano Collective"]
+repository = "https://github.com/Nano-Collective/nanocoder.git"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.43", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+reqwest-eventsource = "0.6"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Configuration
+config = "0.14"
+directories = "5.0"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# File operations
+walkdir = "2.5"
+globset = "0.4"
+ignore = "0.4"
+
+# Markdown parsing
+pulldown-cmark = "0.12"
+
+# Tokenization
+tiktoken-rs = "0.6"
+
+# Environment variables
+dotenvy = "0.15"
+
+# XML parsing
+quick-xml = { version = "0.37", features = ["serialize"] }
+
+# Web content
+scraper = "0.22"
+
+# Process execution
+which = "7.0"
+
+# System information
+sysinfo = "0.33"
+
+# Async traits
+async-trait = "0.1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID
+uuid = { version = "1.11", features = ["v4", "serde"] }

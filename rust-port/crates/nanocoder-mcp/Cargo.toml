@@ -1,0 +1,17 @@
+[package]
+name = "nanocoder-mcp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+nanocoder-core = { path = "../nanocoder-core" }
+nanocoder-config = { path = "../nanocoder-config" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
