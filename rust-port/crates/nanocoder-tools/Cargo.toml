@@ -21,3 +21,7 @@ scraper = { workspace = true }
 which = { workspace = true }
 async-trait = { workspace = true }
 quick-xml = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.9"
+tokio = { workspace = true, features = ["test-util"] }
