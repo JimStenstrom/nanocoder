@@ -1,16 +1,20 @@
 //! AI client integration for nanocoder
 //!
 //! This crate handles communication with LLM providers:
-//! - OpenAI-compatible API support
+//! - OpenAI API support (GPT-4, GPT-3.5, etc.)
+//! - Anthropic API support (Claude models)
 //! - Streaming and non-streaming responses
-//! - Tool call parsing
-//! - Provider fallback and health checks
+//! - Provider registry and configuration management
+//! - Token usage tracking
 
+pub mod anthropic;
 pub mod client;
+pub mod openai;
 pub mod provider;
 pub mod streaming;
-pub mod tool_parser;
 
-pub use client::{AiClient, AiClientBuilder};
-pub use provider::Provider;
-pub use streaming::StreamHandler;
+pub use anthropic::AnthropicClient;
+pub use client::{AiClient, AiClientBuilder, ChatRequest, ChatResponse, TokenUsage};
+pub use openai::OpenAiClient;
+pub use provider::{Provider, ProviderConfig, ProviderRegistry};
+pub use streaming::{StreamChunk, StreamHandler};
