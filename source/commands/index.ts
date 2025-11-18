@@ -14,3 +14,4 @@ export * from '@/commands/status';
 export * from '@/commands/setup-config';
 export * from '@/commands/streaming';
 export * from '@/commands/usage';
+export * from '@/commands/compact';

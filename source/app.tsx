@@ -29,6 +29,7 @@ import {useAppInitialization} from '@/hooks/useAppInitialization';
 import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
 import {
 	createClearMessagesHandler,
+	createCompactMessagesHandler,
 	handleMessageSubmission,
 } from '@/app/utils/appUtils';
 
@@ -156,6 +157,19 @@ export default function App() {
 		[appState.updateMessages, appState.client],
 	);
 
+	const compactMessages = React.useCallback(
+		async (mode: 'default' | 'aggressive' | 'conservative') => {
+			const handler = createCompactMessagesHandler(
+				appState.messages,
+				mode,
+				appState.updateMessages,
+				appState.client,
+			);
+			return await handler();
+		},
+		[appState.messages, appState.updateMessages, appState.client],
+	);
+
 	const handleCancel = React.useCallback(() => {
 		if (appState.abortController) {
 			appState.setIsCancelling(true);
@@ -195,6 +209,7 @@ export default function App() {
 				customCommandLoader: appState.customCommandLoader,
 				customCommandExecutor: appState.customCommandExecutor,
 				onClearMessages: clearMessages,
+				onCompactMessages: compactMessages,
 				onEnterModelSelectionMode: modeHandlers.enterModelSelectionMode,
 				onEnterProviderSelectionMode: modeHandlers.enterProviderSelectionMode,
 				onEnterThemeSelectionMode: modeHandlers.enterThemeSelectionMode,
@@ -220,6 +235,7 @@ export default function App() {
 			appState.customCommandLoader,
 			appState.customCommandExecutor,
 			clearMessages,
+			compactMessages,
 			modeHandlers.enterModelSelectionMode,
 			modeHandlers.enterProviderSelectionMode,
 			modeHandlers.enterThemeSelectionMode,

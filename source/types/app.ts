@@ -10,6 +10,9 @@ export interface MessageSubmissionOptions {
 	customCommandLoader: CustomCommandLoader | null;
 	customCommandExecutor: CustomCommandExecutor | null;
 	onClearMessages: () => Promise<void>;
+	onCompactMessages: (
+		mode: 'default' | 'aggressive' | 'conservative',
+	) => Promise<{success: boolean; message: string; tokensSaved?: number}>;
 	onEnterModelSelectionMode: () => void;
 	onEnterProviderSelectionMode: () => void;
 	onEnterThemeSelectionMode: () => void;

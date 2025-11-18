@@ -17,6 +17,7 @@ export async function handleMessageSubmission(
 		customCommandLoader,
 		customCommandExecutor,
 		onClearMessages,
+		onCompactMessages,
 		onEnterModelSelectionMode,
 		onEnterProviderSelectionMode,
 		onEnterThemeSelectionMode,
@@ -144,6 +145,38 @@ ${result.fullOutput || '(No output)'}`;
 			if (commandName === 'clear') {
 				await onClearMessages();
 				// Still show the clear command result
+			} else if (commandName === 'compact') {
+				// Parse compact command arguments
+				const args = message
+					.slice(commandName.length + 1)
+					.trim()
+					.split(/\s+/)
+					.filter(arg => arg);
+				const action = args[0] || 'preview';
+				const mode = (args[1] || 'default') as
+					| 'default'
+					| 'aggressive'
+					| 'conservative';
+
+				// Only handle 'apply' action here; 'preview' is handled by the command handler
+				if (action === 'apply') {
+					const result = await onCompactMessages(mode);
+					// Show result message
+					const MessageComponent = result.success
+						? InfoMessage
+						: ErrorMessage;
+					queueMicrotask(() =>
+						onAddToChatQueue(
+							React.createElement(MessageComponent, {
+								key: `compact-result-${componentKeyCounter}`,
+								message: result.message,
+								hideBox: true,
+							}),
+						),
+					);
+					// Don't execute the command handler for 'apply' - we've already handled it
+					return;
+				}
 			} else if (commandName === 'model') {
 				onEnterModelSelectionMode();
 				return;
@@ -211,6 +244,154 @@ export function createClearMessagesHandler(
 		setMessages([]);
 		if (client) {
 			await client.clearContext();
+		}
+	};
+}
+
+export function createCompactMessagesHandler(
+	messages: Message[],
+	mode: 'default' | 'aggressive' | 'conservative',
+	setMessages: (messages: Message[]) => void,
+	client: LLMClient | null,
+) {
+	return async (): Promise<{
+		success: boolean;
+		message: string;
+		tokensSaved?: number;
+	}> => {
+		if (!client) {
+			return {
+				success: false,
+				message: 'No LLM client available for compaction',
+			};
+		}
+
+		if (messages.length === 0) {
+			return {
+				success: false,
+				message: 'No messages to compact',
+			};
+		}
+
+		// Determine how many recent messages to keep based on mode
+		let recentMessagesToKeep: number;
+		switch (mode) {
+			case 'aggressive':
+				recentMessagesToKeep = Math.min(5, Math.floor(messages.length * 0.1));
+				break;
+			case 'conservative':
+				recentMessagesToKeep = Math.min(
+					20,
+					Math.floor(messages.length * 0.4),
+				);
+				break;
+			case 'default':
+			default:
+				recentMessagesToKeep = Math.min(
+					10,
+					Math.floor(messages.length * 0.25),
+				);
+				break;
+		}
+
+		const messagesToCompact = Math.max(
+			0,
+			messages.length - recentMessagesToKeep,
+		);
+
+		if (messagesToCompact === 0) {
+			return {
+				success: false,
+				message: 'No messages to compact. Conversation is already minimal.',
+			};
+		}
+
+		// Split messages into those to compact and those to keep
+		const oldMessages = messages.slice(0, messagesToCompact);
+		const recentMessages = messages.slice(messagesToCompact);
+
+		try {
+			// Analyze what types of content are in old messages
+			const hasToolCalls = oldMessages.some(
+				m => m.tool_calls || m.role === 'tool',
+			);
+			const hasCode = oldMessages.some(
+				m =>
+					m.content &&
+					(m.content.includes('```') || m.content.includes('function')),
+			);
+
+			// Create a prompt for the LLM to summarize the old messages
+			const summaryPrompt: Message[] = [
+				{
+					role: 'system',
+					content: `You are a conversation summarizer for a coding assistant. Create a comprehensive but concise summary of the conversation history.
+
+CRITICAL - Focus on preserving:
+1. **Code Changes**: File names, functions modified, and WHY changes were made
+2. **Technical Decisions**: Architecture choices, library selections, patterns chosen
+3. **Tool Executions**: Commands run and their key results (especially errors/warnings)
+4. **Context**: Problem being solved, constraints, requirements discussed
+5. **Outcomes**: What worked, what didn't, current state of implementation
+
+${hasToolCalls ? '⚠️  This conversation includes tool executions - preserve command outputs that revealed errors or important information.\n' : ''}${hasCode ? '⚠️  This conversation includes code changes - preserve file names and purpose of changes.\n' : ''}
+Format as a structured summary with bullet points. Be specific about file names, function names, and technical details. Eliminate verbose back-and-forth but keep technical substance.`,
+				},
+				{
+					role: 'user',
+					content: `Summarize this conversation history, preserving all technical details:\n\n${oldMessages
+						.map((msg, idx) => {
+							let label = msg.role.toUpperCase();
+							if (msg.role === 'tool') label = `TOOL RESULT${msg.name ? ` (${msg.name})` : ''}`;
+							else if (msg.tool_calls) label = `${label} (with tool calls)`;
+
+							// Truncate very long messages but indicate truncation
+							let content = msg.content || '';
+							if (content.length > 2000) {
+								content = content.substring(0, 2000) + '\n[...truncated for length]';
+							}
+
+							return `[${idx + 1}] ${label}:\n${content}`;
+						})
+						.join('\n\n---\n\n')}`,
+				},
+			];
+
+			// Call the LLM to generate a summary
+			const response = await client.chat(summaryPrompt, {});
+
+			if (!response.choices?.[0]?.message?.content) {
+				return {
+					success: false,
+					message: 'Failed to generate summary: empty response',
+				};
+			}
+
+			// Create a new system message with the summary
+			const summaryMessage: Message = {
+				role: 'system',
+				content: `[Conversation History Summary - ${messagesToCompact} messages compacted]\n\n${response.choices[0].message.content}`,
+			};
+
+			// Create the new message array: summary + recent messages
+			const newMessages: Message[] = [summaryMessage, ...recentMessages];
+
+			// Update the message state
+			setMessages(newMessages);
+
+			// Clear and update client context
+			await client.clearContext();
+
+			return {
+				success: true,
+				message: `Successfully compacted ${messagesToCompact} messages into a summary. Kept ${recentMessagesToKeep} recent messages.`,
+				tokensSaved: oldMessages.length,
+			};
+		} catch (error) {
+			return {
+				success: false,
+				message: `Failed to compact messages: ${error instanceof Error ? error.message : String(error)}`,
+			};
 		}
 	};
 }

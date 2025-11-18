@@ -17,6 +17,7 @@ import {appConfig} from '@/config/index';
 import {
 	clearCommand,
 	commandsCommand,
+	compactCommand,
 	exitCommand,
 	exportCommand,
 	helpCommand,
@@ -276,6 +277,7 @@ export function useAppInitialization({
 				setupConfigCommand,
 				streamingCommand,
 				usageCommand,
+				compactCommand,
 			]);
 
 			// Now start with the properly initialized objects (excluding MCP)
