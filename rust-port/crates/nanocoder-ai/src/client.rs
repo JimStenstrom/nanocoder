@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Request to an AI provider for chat completion
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatRequest {
     /// The model to use (e.g., "gpt-4", "claude-3-5-sonnet-20241022")
     pub model: String,

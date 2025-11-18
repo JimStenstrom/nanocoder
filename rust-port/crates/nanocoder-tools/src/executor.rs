@@ -6,7 +6,7 @@
 //! - Error handling
 //! - Result formatting
 
-use nanocoder_core::{Error, Result, ToolCall, ToolExecutor, ValidationResult};
+use nanocoder_core::{Error, Result, ToolCall, ValidationResult};
 use crate::registry::ToolRegistry;
 use std::sync::Arc;
 
@@ -150,7 +150,7 @@ impl ConfiguredExecutor {
 mod tests {
     use super::*;
     use async_trait::async_trait;
-    use nanocoder_core::{Tool, message::ToolFunction};
+    use nanocoder_core::{Tool, ToolExecutor, message::ToolFunction};
     use std::collections::HashMap;
 
     struct MockReadTool;

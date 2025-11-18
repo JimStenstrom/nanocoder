@@ -1,6 +1,6 @@
 //! Tool registry for managing static and MCP tools
 
-use nanocoder_core::{Result, Tool, ToolExecutor};
+use nanocoder_core::{Tool, ToolExecutor};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -106,7 +106,7 @@ impl Default for ToolRegistryBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nanocoder_core::Tool;
+    use nanocoder_core::{Result, Tool};
     use async_trait::async_trait;
 
     struct MockTool;
