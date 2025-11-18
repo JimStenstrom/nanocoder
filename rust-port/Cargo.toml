@@ -80,3 +80,6 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # UUID
 uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Regex
+regex = "1.11"

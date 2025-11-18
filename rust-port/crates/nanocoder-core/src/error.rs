@@ -20,6 +20,9 @@ pub enum Error {
     #[error("Invalid message format: {0}")]
     InvalidMessage(String),
 
+    #[error("Parsing error: {0}")]
+    Parsing(String),
+
     #[error("{0}")]
     Other(String),
 }
