@@ -1,7 +1,7 @@
 import {Command} from '@/types/index';
 import React from 'react';
 import {TitledBox, titleStyles} from '@mishieck/ink-titled-box';
-import {Box, Newline, Text} from 'ink';
+import {Box, Text} from 'ink';
 import {colors} from '@/config/index';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import ErrorMessage from '@/components/error-message';

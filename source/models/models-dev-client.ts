@@ -270,6 +270,11 @@ async function findModelByName(modelName: string): Promise<ModelInfo | null> {
 export async function getModelContextLimit(
 	modelId: string,
 ): Promise<number | null> {
+	// Return default context limit for empty model ID
+	if (!modelId || modelId.trim() === '') {
+		return 262144; // 256K tokens - reasonable default
+	}
+
 	// Try Ollama fallback first with original model ID (before normalization)
 	// This handles cloud models like gpt-oss:20b-cloud
 	const ollamaLimitOriginal = getOllamaFallbackContextLimit(modelId);
