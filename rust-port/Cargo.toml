@@ -83,3 +83,16 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 
 # Regex
 regex = "1.11"
+
+[profile.release]
+# Optimize for size and speed
+opt-level = 3
+lto = "thin"           # Enable Link Time Optimization for smaller binaries
+codegen-units = 1      # Better optimization at cost of compilation time
+strip = true           # Strip symbols for smaller binary
+panic = "abort"        # Smaller binary, faster panics
+
+[profile.dev]
+# Faster incremental compilation during development
+opt-level = 0
+incremental = true
