@@ -294,3 +294,100 @@ fn test_full_stack_components() {
 
     // All components initialized successfully
 }
+
+#[tokio::test]
+async fn test_mcp_client_integration() {
+    use nanocoder_mcp::McpClient;
+
+    // Verify MCP client can be created
+    let mcp_client = McpClient::new();
+
+    // Verify initial state
+    let servers = mcp_client.get_connected_servers().await;
+    assert_eq!(servers.len(), 0);
+
+    let tools = mcp_client.get_all_tools().await;
+    assert_eq!(tools.len(), 0);
+
+    let mapping = mcp_client.get_tool_mapping().await;
+    assert_eq!(mapping.len(), 0);
+}
+
+#[tokio::test]
+async fn test_bridge_server_mcp_list_tools() {
+    let server = BridgeServer::new();
+
+    // Create an mcp.list_tools request
+    let request = JsonRpcRequest::new(
+        json!(1),
+        "mcp.list_tools",
+        None,
+    );
+
+    // Handle the request
+    let response = server.handle_request(request).await;
+
+    // Verify response
+    assert!(response.result.is_some());
+    assert!(response.error.is_none());
+
+    // Should return empty array initially
+    let tools: Vec<nanocoder_core::Tool> = serde_json::from_value(response.result.unwrap()).unwrap();
+    assert_eq!(tools.len(), 0);
+}
+
+#[tokio::test]
+async fn test_bridge_server_mcp_call_tool_no_connection() {
+    let server = BridgeServer::new();
+
+    // Try to call an MCP tool that doesn't exist
+    let params = json!({
+        "name": "nonexistent_tool",
+        "arguments": {}
+    });
+
+    let request = JsonRpcRequest::new(
+        json!(2),
+        "mcp.call_tool",
+        Some(params),
+    );
+
+    // Handle the request
+    let response = server.handle_request(request).await;
+
+    // Should return an error since no MCP servers are connected
+    assert!(response.result.is_none());
+    assert!(response.error.is_some());
+}
+
+#[test]
+fn test_mcp_protocol_types() {
+    use nanocoder_mcp::{McpServer, McpTool};
+
+    // Test McpServer serialization
+    let server = McpServer {
+        name: "test-server".to_string(),
+        command: "node".to_string(),
+        args: Some(vec!["server.js".to_string()]),
+        env: None,
+    };
+
+    let json = serde_json::to_string(&server).unwrap();
+    assert!(json.contains("test-server"));
+
+    // Test McpTool deserialization
+    let tool_json = json!({
+        "name": "test_tool",
+        "description": "A test tool",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "arg": {"type": "string"}
+            }
+        }
+    });
+
+    let tool: McpTool = serde_json::from_value(tool_json).unwrap();
+    assert_eq!(tool.name, "test_tool");
+    assert_eq!(tool.description, Some("A test tool".to_string()));
+}
