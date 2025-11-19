@@ -77,7 +77,6 @@ export default function ModelSelector({
 	if (loading) {
 		return (
 			<TitledBox
-				key={colors.primary}
 				borderStyle="round"
 				titles={['Model Selection']}
 				titleStyles={titleStyles.pill}

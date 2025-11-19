@@ -337,7 +337,6 @@ export function ConfigWizard({
 
 	return (
 		<TitledBox
-			key={colors.primary}
 			borderStyle="round"
 			titles={[`Configuration Wizard`]}
 			titleStyles={titleStyles.pill}

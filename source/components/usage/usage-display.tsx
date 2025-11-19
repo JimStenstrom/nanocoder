@@ -86,7 +86,6 @@ export function UsageDisplay({
 
 	return (
 		<TitledBox
-			key={colors.primary}
 			borderStyle="round"
 			titles={['Context Usage']}
 			titleStyles={titleStyles.pill}

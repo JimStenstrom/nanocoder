@@ -57,7 +57,6 @@ export default function ProviderSelector({
 
 	return (
 		<TitledBox
-			key={colors.primary}
 			borderStyle="round"
 			titles={['Select a Provider']}
 			titleStyles={titleStyles.pill}

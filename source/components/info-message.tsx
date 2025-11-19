@@ -34,7 +34,6 @@ export default function InfoMessage({
 				</Box>
 			) : (
 				<TitledBox
-					key={colors.primary}
 					borderStyle="round"
 					titles={['Info']}
 					titleStyles={titleStyles.pill}

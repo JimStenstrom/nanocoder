@@ -35,7 +35,6 @@ export default memo(function WarningMessage({
 				</Box>
 			) : (
 				<TitledBox
-					key={colors.primary}
 					borderStyle="round"
 					titles={['Warning']}
 					titleStyles={titleStyles.pill}

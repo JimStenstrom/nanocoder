@@ -65,7 +65,6 @@ export default memo(function ToolMessage({
 				</Box>
 			) : (
 				<TitledBox
-					key={colors.primary}
 					borderStyle={borderStyle}
 					titles={[title || 'Tool Message']}
 					titleStyles={titleStyles.pill}

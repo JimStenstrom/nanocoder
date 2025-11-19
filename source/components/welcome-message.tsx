@@ -59,7 +59,6 @@ export default memo(function WelcomeMessage() {
 					</Gradient>
 
 					<TitledBox
-						key={colors.primary}
 						borderStyle="round"
 						titles={[`✻ Welcome to Nanocoder ${packageJson.version}`]}
 						titleStyles={titleStyles.pill}

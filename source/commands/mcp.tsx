@@ -18,7 +18,6 @@ function MCP({toolManager}: MCPProps) {
 
 	return (
 		<TitledBox
-			key={colors.primary}
 			borderStyle="round"
 			titles={['/mcp']}
 			titleStyles={titleStyles.pill}

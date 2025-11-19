@@ -87,7 +87,6 @@ export default memo(function Status({
 			) : (
 				/* Normal/Wide terminal: full layout with TitledBox */
 				<TitledBox
-					key={colors.primary}
 					borderStyle="round"
 					titles={['Status']}
 					titleStyles={titleStyles.pill}

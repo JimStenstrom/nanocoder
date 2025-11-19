@@ -69,7 +69,6 @@ export default function ThemeSelector({
 			</Gradient>
 
 			<TitledBox
-				key={colors.primary}
 				borderStyle="round"
 				titles={[`✻ Try out different themes!`]}
 				titleStyles={titleStyles.pill}

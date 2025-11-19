@@ -47,7 +47,6 @@ export default function SecurityDisclaimer({
 	return (
 		<Box flexDirection="column" padding={1}>
 			<TitledBox
-				key={colors.primary}
 				borderStyle="round"
 				titles={['Security Warning']}
 				titleStyles={titleStyles.pill}
