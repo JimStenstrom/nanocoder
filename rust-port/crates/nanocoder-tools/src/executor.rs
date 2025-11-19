@@ -3,40 +3,89 @@
 //! Handles the execution of tool calls with:
 //! - Tool lookup from registry
 //! - Argument validation
+//! - Timeout handling
 //! - Error handling
 //! - Result formatting
 
 use nanocoder_core::{Error, Result, ToolCall, ValidationResult};
 use crate::registry::ToolRegistry;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::timeout;
+
+/// Default timeout for tool execution (2 minutes)
+const DEFAULT_TOOL_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// Execute a tool call using the provided registry
 pub async fn execute_tool_call(
     tool_call: &ToolCall,
     registry: &ToolRegistry,
 ) -> Result<String> {
+    execute_tool_call_with_timeout(tool_call, registry, DEFAULT_TOOL_TIMEOUT).await
+}
+
+/// Execute a tool call with a custom timeout
+pub async fn execute_tool_call_with_timeout(
+    tool_call: &ToolCall,
+    registry: &ToolRegistry,
+    tool_timeout: Duration,
+) -> Result<String> {
+    tracing::debug!(
+        "Executing tool '{}' with timeout {:?}",
+        tool_call.function.name,
+        tool_timeout
+    );
+
     // Look up the tool in the registry
     let executor = registry
         .get(&tool_call.function.name)
         .ok_or_else(|| {
+            tracing::error!("Tool '{}' not found in registry", tool_call.function.name);
             Error::ToolExecution(format!("Tool '{}' not found in registry", tool_call.function.name))
         })?;
 
     // Convert HashMap to JSON Value for validation and execution
     let args_json = serde_json::to_value(&tool_call.function.arguments)
-        .map_err(|e| Error::Serialization(e))?;
+        .map_err(|e| {
+            tracing::error!("Failed to serialize tool arguments: {}", e);
+            Error::Serialization(e)
+        })?;
 
     // Validate arguments
     let validation = executor.validate(&args_json).await;
     if let ValidationResult::Invalid(reason) = validation {
+        tracing::warn!(
+            "Validation failed for tool '{}': {}",
+            tool_call.function.name,
+            reason
+        );
         return Err(Error::ToolExecution(format!(
             "Validation failed for tool '{}': {}",
             tool_call.function.name, reason
         )));
     }
 
-    // Execute the tool
-    executor.execute(args_json).await
+    // Execute the tool with timeout
+    match timeout(tool_timeout, executor.execute(args_json)).await {
+        Ok(result) => {
+            match &result {
+                Ok(_) => tracing::debug!("Tool '{}' executed successfully", tool_call.function.name),
+                Err(e) => tracing::error!("Tool '{}' execution failed: {}", tool_call.function.name, e),
+            }
+            result
+        }
+        Err(_) => {
+            tracing::error!(
+                "Tool '{}' execution timed out after {:?}",
+                tool_call.function.name,
+                tool_timeout
+            );
+            Err(Error::ToolExecution(format!(
+                "Tool '{}' execution timed out after {:?}",
+                tool_call.function.name, tool_timeout
+            )))
+        }
+    }
 }
 
 /// Execute multiple tool calls in sequence

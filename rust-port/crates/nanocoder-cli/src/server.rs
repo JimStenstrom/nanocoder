@@ -50,6 +50,8 @@ impl BridgeServer {
 
     /// Handle a JSON-RPC request
     pub async fn handle_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        tracing::debug!("Handling request: {}", request.method);
+
         match request.method.as_str() {
             "tool.execute" => self.handle_tool_execute(request).await,
             "ai.chat" => self.handle_ai_chat(request).await,
@@ -58,11 +60,43 @@ impl BridgeServer {
             "mcp.connect" => self.handle_mcp_connect(request).await,
             "mcp.list_tools" => self.handle_mcp_list_tools(request).await,
             "mcp.call_tool" => self.handle_mcp_call_tool(request).await,
-            _ => JsonRpcResponse::error(
-                request.id,
-                JsonRpcError::method_not_found(&request.method),
-            ),
+            "health" => self.handle_health(request).await,
+            _ => {
+                tracing::warn!("Unknown method requested: {}", request.method);
+                JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::method_not_found(&request.method),
+                )
+            }
         }
+    }
+
+    /// Handle health check request
+    async fn handle_health(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        let connected_servers = self.mcp_client.get_connected_servers().await;
+        let has_ai_client = self.ai_client.read().await.is_some();
+
+        let health_info = json!({
+            "status": "healthy",
+            "mcp_servers_connected": connected_servers.len(),
+            "ai_client_initialized": has_ai_client,
+            "version": env!("CARGO_PKG_VERSION"),
+        });
+
+        JsonRpcResponse::success(request.id.unwrap_or(Value::Null), health_info)
+    }
+
+    /// Gracefully shutdown the server
+    pub async fn shutdown(&self) -> Result<()> {
+        tracing::info!("Shutting down bridge server");
+
+        // Disconnect MCP clients
+        if let Err(e) = self.mcp_client.disconnect().await {
+            tracing::error!("Error disconnecting MCP clients: {}", e);
+        }
+
+        tracing::info!("Bridge server shutdown complete");
+        Ok(())
     }
 
     /// Handle tool execution
@@ -274,7 +308,8 @@ impl BridgeServer {
             match reader.read_line(&mut line).await {
                 Ok(0) => {
                     // EOF
-                    tracing::info!("EOF received, shutting down");
+                    tracing::info!("EOF received, shutting down gracefully");
+                    self.shutdown().await?;
                     break;
                 }
                 Ok(_) => {
@@ -308,6 +343,7 @@ impl BridgeServer {
                     // Send response
                     let response_json = serde_json::to_string(&response)
                         .unwrap_or_else(|_| {
+                            tracing::error!("Failed to serialize response");
                             serde_json::to_string(&JsonRpcResponse::error(
                                 None,
                                 JsonRpcError::internal_error("Failed to serialize response"),
@@ -321,6 +357,7 @@ impl BridgeServer {
                 }
                 Err(e) => {
                     tracing::error!("Error reading stdin: {}", e);
+                    self.shutdown().await?;
                     break;
                 }
             }
