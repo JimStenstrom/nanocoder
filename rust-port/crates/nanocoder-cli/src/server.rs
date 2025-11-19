@@ -3,6 +3,7 @@
 use crate::bridge::{JsonRpcError, JsonRpcRequest, JsonRpcResponse};
 use nanocoder_ai::{AiClient, ChatRequest, Provider, ProviderConfig};
 use nanocoder_core::Result;
+use nanocoder_mcp::{McpClient, McpServer};
 use nanocoder_tools::{ToolRegistry, execute_tool_call};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -13,6 +14,7 @@ use tokio::sync::RwLock;
 pub struct BridgeServer {
     tool_registry: Arc<ToolRegistry>,
     ai_client: Arc<RwLock<Option<Box<dyn AiClient>>>>,
+    mcp_client: Arc<McpClient>,
 }
 
 impl BridgeServer {
@@ -34,6 +36,7 @@ impl BridgeServer {
         Self {
             tool_registry: Arc::new(registry),
             ai_client: Arc::new(RwLock::new(None)),
+            mcp_client: Arc::new(McpClient::new()),
         }
     }
 
@@ -52,6 +55,9 @@ impl BridgeServer {
             "ai.chat" => self.handle_ai_chat(request).await,
             "ai.init" => self.handle_ai_init(request).await,
             "tools.list" => self.handle_tools_list(request).await,
+            "mcp.connect" => self.handle_mcp_connect(request).await,
+            "mcp.list_tools" => self.handle_mcp_list_tools(request).await,
+            "mcp.call_tool" => self.handle_mcp_call_tool(request).await,
             _ => JsonRpcResponse::error(
                 request.id,
                 JsonRpcError::method_not_found(&request.method),
@@ -180,6 +186,78 @@ impl BridgeServer {
         let definitions = self.tool_registry.get_definitions();
         let result = serde_json::to_value(definitions).unwrap_or(Value::Null);
         JsonRpcResponse::success(request.id.unwrap_or(Value::Null), result)
+    }
+
+    /// Handle MCP connect request
+    async fn handle_mcp_connect(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        let params = match request.params {
+            Some(p) => p,
+            None => {
+                return JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::invalid_params("Missing params"),
+                );
+            }
+        };
+
+        // Parse servers from params
+        let servers: Vec<McpServer> = match serde_json::from_value(params) {
+            Ok(s) => s,
+            Err(e) => {
+                return JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::invalid_params(format!("Invalid server list: {}", e)),
+                );
+            }
+        };
+
+        // Connect to servers
+        let results = self.mcp_client.connect_to_servers(&servers).await;
+        let result = serde_json::to_value(results).unwrap_or(Value::Null);
+        JsonRpcResponse::success(request.id.unwrap_or(Value::Null), result)
+    }
+
+    /// Handle MCP list tools request
+    async fn handle_mcp_list_tools(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        let tools = self.mcp_client.get_all_tools().await;
+        let result = serde_json::to_value(tools).unwrap_or(Value::Null);
+        JsonRpcResponse::success(request.id.unwrap_or(Value::Null), result)
+    }
+
+    /// Handle MCP call tool request
+    async fn handle_mcp_call_tool(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        let params = match request.params {
+            Some(p) => p,
+            None => {
+                return JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::invalid_params("Missing params"),
+                );
+            }
+        };
+
+        let tool_name = match params.get("name").and_then(|v| v.as_str()) {
+            Some(n) => n,
+            None => {
+                return JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::invalid_params("Missing tool name"),
+                );
+            }
+        };
+
+        let args = params.get("arguments").cloned().unwrap_or(json!({}));
+
+        match self.mcp_client.call_tool(tool_name, args).await {
+            Ok(output) => JsonRpcResponse::success(
+                request.id.unwrap_or(Value::Null),
+                json!({ "output": output }),
+            ),
+            Err(e) => JsonRpcResponse::error(
+                request.id,
+                JsonRpcError::internal_error(format!("MCP tool execution failed: {}", e)),
+            ),
+        }
     }
 
     /// Run the bridge server (stdin/stdout)
