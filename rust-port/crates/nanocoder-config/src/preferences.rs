@@ -87,12 +87,11 @@ impl Preferences {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use tempfile::NamedTempFile;
 
     #[test]
     fn test_load_save_preferences() {
-        let mut file = NamedTempFile::new().unwrap();
+        let file = NamedTempFile::new().unwrap();
         let prefs = Preferences {
             last_provider: Some("ollama".to_string()),
             last_model: Some("llama3.1:8b".to_string()),
