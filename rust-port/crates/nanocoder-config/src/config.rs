@@ -120,7 +120,6 @@ pub fn load_config() -> anyhow::Result<Config> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
-    use std::io::Write;
 
     #[test]
     fn test_load_config_with_providers() {
