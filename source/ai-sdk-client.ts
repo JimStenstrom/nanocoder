@@ -16,8 +16,9 @@ import {getModelContextLimit} from '@/models/index.js';
 
 /**
  * Parses API errors into user-friendly messages
+ * Exported for testing purposes
  */
-function parseAPIError(error: unknown): string {
+export function parseAPIError(error: unknown): string {
 	if (!(error instanceof Error)) {
 		return 'An unknown error occurred while communicating with the model';
 	}
@@ -164,7 +165,8 @@ export class AISDKClient implements LLMClient {
 		this.currentModel = providerConfig.models[0] || '';
 		this.cachedContextSize = 0;
 		// Default to 2 retries (same as AI SDK default), or use configured value
-		this.maxRetries = providerConfig.maxRetries ?? 2;
+		// Clamp to non-negative integer to prevent invalid values
+		this.maxRetries = Math.max(0, Math.floor(providerConfig.maxRetries ?? 2));
 
 		const {requestTimeout, socketTimeout, connectionPool} = this.providerConfig;
 		const resolvedSocketTimeout =
