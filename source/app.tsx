@@ -81,16 +81,21 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 		) => {
 			// Check if the chat system is ready
 			if (!messageSubmitRef.current) {
-				// Chat system not initialized yet - this is an error condition
+				// Chat system not initialized yet - prompt will be lost
+				// This should rarely happen as initialization is fast
+				console.error(
+					'VS Code prompt received before chat system initialized - prompt dropped',
+				);
 				return;
 			}
 
 			// Build enhanced prompt with file context if available
 			let enhancedPrompt = prompt;
 
-			if (context?.selection && context?.filePath) {
-				// If there's a selection, format it with the file path and code block
-				enhancedPrompt = `File: ${context.filePath}\n\nSelected code:\n\`\`\`\n${context.selection}\n\`\`\`\n\n${prompt}`;
+			if (context?.selection) {
+				// Format selection with file path if available
+				const fileInfo = context.filePath ? `File: ${context.filePath}\n\n` : '';
+				enhancedPrompt = `${fileInfo}Selected code:\n\`\`\`\n${context.selection}\n\`\`\`\n\n${prompt}`;
 			} else if (context?.filePath) {
 				// Just file context without selection
 				enhancedPrompt = `[Context: ${context.filePath}]\n\n${prompt}`;
