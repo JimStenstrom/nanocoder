@@ -32,10 +32,16 @@ import {useModeHandlers} from '@/hooks/useModeHandlers';
 import {useAppInitialization} from '@/hooks/useAppInitialization';
 import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
+import {useContextManager} from '@/hooks/useContextManager';
 import {
 	createClearMessagesHandler,
 	handleMessageSubmission,
 } from '@/app/utils/appUtils';
+
+// Import context indicator components
+import ContextIndicator, {
+	ContextWarningMessage,
+} from '@/components/context-indicator';
 
 // Provide shared UI state to components
 import {UIStateProvider} from '@/hooks/useUIState';
@@ -51,6 +57,18 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 	const {exit} = useApp();
 	const {isTrusted, handleConfirmTrust, isTrustLoading, isTrustedError} =
 		useDirectoryTrust();
+
+	// Context management for tracking token usage and auto-pruning
+	const contextManager = useContextManager({
+		client: appState.client,
+		messages: appState.messages,
+		tokenizer: appState.tokenizer,
+		getMessageTokens: appState.getMessageTokens,
+		warningThreshold: 80,
+		criticalThreshold: 90,
+		minMessagesToKeep: 6,
+		currentModel: appState.currentModel,
+	});
 
 	// VS Code extension installation prompt state
 	const [showExtensionPrompt, setShowExtensionPrompt] = React.useState(
@@ -139,6 +157,8 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 			});
 			appState.setIsToolConfirmationMode(true);
 		},
+		// Context management for auto-pruning
+		pruneMessages: contextManager.pruneMessages,
 	});
 
 	// Setup tool handler
@@ -201,6 +221,26 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 		componentKeyCounter: appState.componentKeyCounter,
 		reinitializeMCPServers: appInitialization.reinitializeMCPServers,
 	});
+
+	// Reset context warning state when conversation is cleared
+	React.useEffect(() => {
+		if (appState.messages.length === 0) {
+			contextManager.resetWarningState();
+		}
+	}, [appState.messages.length, contextManager]);
+
+	// Show context warning when approaching limit (once per threshold crossing)
+	React.useEffect(() => {
+		if (contextManager.shouldShowWarning) {
+			appState.addToChatQueue(
+				<ContextWarningMessage
+					key={`context-warning-${Date.now()}`}
+					contextUsage={contextManager.contextUsage}
+				/>,
+			);
+			contextManager.markWarningShown();
+		}
+	}, [contextManager.shouldShowWarning, contextManager, appState]);
 
 	// Memoize handlers to prevent unnecessary re-renders
 	const clearMessages = React.useMemo(
@@ -453,20 +493,30 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 							) : appState.isBashExecuting ? (
 								<BashExecutionIndicator command={appState.currentBashCommand} />
 							) : appState.mcpInitialized && appState.client ? (
-								<UserInput
-									customCommands={Array.from(
-										appState.customCommandCache.keys(),
+								<Box flexDirection="column">
+									{/* Context usage indicator */}
+									{contextManager.contextUsage.hasContextLimit && (
+										<Box marginBottom={0} justifyContent="flex-end">
+											<ContextIndicator
+												contextUsage={contextManager.contextUsage}
+											/>
+										</Box>
 									)}
-									onSubmit={msg => void handleMessageSubmit(msg)}
-									disabled={
-										appState.isThinking ||
-										appState.isToolExecuting ||
-										appState.isBashExecuting
-									}
-									onCancel={handleCancel}
-									onToggleMode={handleToggleDevelopmentMode}
-									developmentMode={appState.developmentMode}
-								/>
+									<UserInput
+										customCommands={Array.from(
+											appState.customCommandCache.keys(),
+										)}
+										onSubmit={msg => void handleMessageSubmit(msg)}
+										disabled={
+											appState.isThinking ||
+											appState.isToolExecuting ||
+											appState.isBashExecuting
+										}
+										onCancel={handleCancel}
+										onToggleMode={handleToggleDevelopmentMode}
+										developmentMode={appState.developmentMode}
+									/>
+								</Box>
 							) : appState.mcpInitialized && !appState.client ? (
 								<></>
 							) : (

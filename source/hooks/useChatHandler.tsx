@@ -18,6 +18,8 @@ import {formatError} from '@/utils/error-formatter';
 import UserMessage from '@/components/user-message';
 import AssistantMessage from '@/components/assistant-message';
 import ErrorMessage from '@/components/error-message';
+import {ContextPrunedMessage} from '@/components/context-indicator';
+import type {PruneResult} from '@/hooks/useContextManager';
 import React from 'react';
 
 // Helper function to filter out invalid tool calls and deduplicate by ID and function
@@ -94,6 +96,8 @@ interface UseChatHandlerProps {
 		assistantMsg: Message,
 		systemMessage: Message,
 	) => void;
+	/** Context management: prune messages function (handles threshold check internally) */
+	pruneMessages?: (messages: Message[]) => PruneResult;
 }
 
 export function useChatHandler({
@@ -110,6 +114,7 @@ export function useChatHandler({
 	setAbortController,
 	developmentMode = 'normal',
 	onStartToolConfirmationFlow,
+	pruneMessages,
 }: UseChatHandlerProps) {
 	// Conversation state manager for enhanced context
 	const conversationStateManager = React.useRef(new ConversationStateManager());
@@ -128,9 +133,29 @@ export function useChatHandler({
 	// Process assistant response - handles the conversation loop with potential tool calls (for follow-ups)
 	const processAssistantResponse = async (
 		systemMessage: Message,
-		messages: Message[],
+		messagesToProcess: Message[],
 	) => {
 		if (!client) return;
+
+		// Check if we need to prune messages before sending to LLM
+		// Note: pruneMessages internally checks if pruning is actually needed
+		// based on current token count, so it's safe to call on every request
+		let processedMessages = messagesToProcess;
+		if (pruneMessages) {
+			const pruneResult = pruneMessages(messagesToProcess);
+			if (pruneResult.pruned) {
+				processedMessages = pruneResult.messages;
+				setMessages(processedMessages);
+
+				// Notify user about pruning
+				addToChatQueue(
+					<ContextPrunedMessage
+						key={`pruned-${componentKeyCounter}-${Date.now()}`}
+						removedCount={pruneResult.removedCount}
+					/>,
+				);
+			}
+		}
 
 		// Ensure we have an abort controller for this request
 		let controller = abortController;
@@ -153,7 +178,7 @@ export function useChatHandler({
 				setStreamingContent('');
 
 				result = await client.chatStream(
-					[systemMessage, ...messages],
+					[systemMessage, ...processedMessages],
 					toolManager?.getAllTools() || {},
 					{
 						onToken: (token: string) => {
@@ -169,7 +194,7 @@ export function useChatHandler({
 			} else {
 				// Fallback to non-streaming (either client doesn't support it or user disabled it)
 				result = await client.chat(
-					[systemMessage, ...messages],
+					[systemMessage, ...processedMessages],
 					toolManager?.getAllTools() || {},
 					controller.signal,
 				);
@@ -219,7 +244,7 @@ export function useChatHandler({
 				content: cleanedContent,
 				tool_calls: validToolCalls.length > 0 ? validToolCalls : undefined,
 			};
-			setMessages([...messages, assistantMsg]);
+			setMessages([...processedMessages, assistantMsg]);
 
 			// Update conversation state with assistant message
 			conversationStateManager.current.updateAssistantMessage(assistantMsg);
@@ -250,7 +275,7 @@ export function useChatHandler({
 				}));
 
 				const updatedMessagesWithError = [
-					...messages,
+					...processedMessages,
 					assistantMsg,
 					...toolMessages,
 				];
@@ -306,7 +331,7 @@ export function useChatHandler({
 						}));
 
 						const updatedMessagesWithError = [
-							...messages,
+							...processedMessages,
 							assistantMsg,
 							...toolMessages,
 						];
@@ -474,7 +499,7 @@ export function useChatHandler({
 						}));
 
 						const updatedMessagesWithTools = [
-							...messages,
+							...processedMessages,
 							assistantMsg,
 							...toolMessages,
 						];
@@ -493,7 +518,7 @@ export function useChatHandler({
 				if (toolsNeedingConfirmation.length > 0) {
 					onStartToolConfirmationFlow(
 						toolsNeedingConfirmation,
-						messages,
+						processedMessages,
 						assistantMsg,
 						systemMessage,
 					);
@@ -505,7 +530,7 @@ export function useChatHandler({
 			// Auto-reprompt to help the model continue
 			if (validToolCalls.length === 0 && !cleanedContent.trim()) {
 				// Check if we just executed tools (messages should have tool results)
-				const lastMessage = messages[messages.length - 1];
+				const lastMessage = processedMessages[processedMessages.length - 1];
 				const hasRecentToolResults = lastMessage?.role === 'tool';
 
 				if (hasRecentToolResults) {
@@ -517,7 +542,7 @@ export function useChatHandler({
 					};
 
 					const updatedMessagesWithNudge = [
-						...messages,
+						...processedMessages,
 						assistantMsg,
 						nudgeMessage,
 					];
