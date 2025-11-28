@@ -9,6 +9,13 @@ import {fetchUrlTool} from '@/tools/fetch-url';
 import {findFilesTool} from '@/tools/find-files';
 import {searchFileContentsTool} from '@/tools/search-file-contents';
 import {getDiagnosticsTool} from '@/tools/lsp-get-diagnostics';
+// Git workflow tools
+import {
+	gitSmartCommitTool,
+	gitCreatePRTool,
+	gitBranchSuggestTool,
+	gitStatusEnhancedTool,
+} from '@/tools/git';
 import React from 'react';
 import type {ToolHandler, ToolDefinition, AISDKCoreTool} from '@/types/index';
 
@@ -24,6 +31,11 @@ export const toolDefinitions: ToolDefinition[] = [
 	findFilesTool,
 	searchFileContentsTool,
 	getDiagnosticsTool,
+	// Git workflow tools
+	gitSmartCommitTool,
+	gitCreatePRTool,
+	gitBranchSuggestTool,
+	gitStatusEnhancedTool,
 ];
 
 // Export handlers for manual execution (human-in-the-loop)
