@@ -59,6 +59,12 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 	const [extensionPromptComplete, setExtensionPromptComplete] =
 		React.useState(false);
 
+	// Ref to store the message submit handler for VS Code prompts
+	// This allows the handleVSCodePrompt callback to access the handler after it's created
+	const messageSubmitRef = React.useRef<
+		((message: string) => Promise<void>) | null
+	>(null);
+
 	const handleExit = () => {
 		exit();
 	};
@@ -73,16 +79,25 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 				cursorPosition?: {line: number; character: number};
 			},
 		) => {
-			// Build enhanced prompt with context if available
-			let enhancedPrompt = prompt;
-			if (context?.filePath) {
-				enhancedPrompt = `[Context: ${context.filePath}${
-					context.selection ? ` (selection)` : ''
-				}]\n\n${prompt}`;
+			// Check if the chat system is ready
+			if (!messageSubmitRef.current) {
+				// Chat system not initialized yet - this is an error condition
+				return;
 			}
-			// This will be connected to chat handler after initialization
-			// For now, store it for processing
-			console.log('VS Code prompt received:', enhancedPrompt);
+
+			// Build enhanced prompt with file context if available
+			let enhancedPrompt = prompt;
+
+			if (context?.selection && context?.filePath) {
+				// If there's a selection, format it with the file path and code block
+				enhancedPrompt = `File: ${context.filePath}\n\nSelected code:\n\`\`\`\n${context.selection}\n\`\`\`\n\n${prompt}`;
+			} else if (context?.filePath) {
+				// Just file context without selection
+				enhancedPrompt = `[Context: ${context.filePath}]\n\n${prompt}`;
+			}
+
+			// Submit the prompt to the chat system
+			void messageSubmitRef.current(enhancedPrompt);
 		},
 		[],
 	);
@@ -292,6 +307,12 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 			appState.getMessageTokens,
 		],
 	);
+
+	// Update the VS Code prompt handler ref after handleMessageSubmit is created
+	// This connects the VS Code server callback to the actual chat submission
+	React.useEffect(() => {
+		messageSubmitRef.current = handleMessageSubmit;
+	}, [handleMessageSubmit]);
 
 	// Memoize static components to prevent unnecessary re-renders
 	const staticComponents = React.useMemo(
