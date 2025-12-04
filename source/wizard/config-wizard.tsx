@@ -14,6 +14,7 @@ import {buildConfigObject} from './validation';
 import {TitledBox, titleStyles} from '@mishieck/ink-titled-box';
 import {colors} from '@/config/index';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
+import {logger} from '@/utils/logger';
 
 interface ConfigWizardProps {
 	projectDir: string;
@@ -70,7 +71,7 @@ export function ConfigWizard({
 				setProviders(newProviders);
 				setMcpServers(newMcpServers);
 			} catch (err) {
-				console.error('Failed to load existing config:', err);
+				logger.warnWithError('config-wizard', 'Failed to load existing config', err);
 			}
 		});
 	}, [configPath]);

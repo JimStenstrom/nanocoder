@@ -7,6 +7,7 @@ import {xdgCache} from 'xdg-basedir';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {ModelsDevDatabase, CachedModelsData} from './models-types.js';
+import {logger} from '@/utils/logger';
 
 /**
  * Cache expiration time: 7 days in milliseconds
@@ -53,7 +54,7 @@ export function readCache(): CachedModelsData | null {
 		return cached;
 	} catch (error) {
 		// If there's any error reading cache, return null to trigger fresh fetch
-		console.warn('Failed to read models cache:', error);
+		logger.warnWithError('models-cache', 'Failed to read models cache', error);
 		return null;
 	}
 }
@@ -71,6 +72,6 @@ export function writeCache(data: ModelsDevDatabase): void {
 		const cachePath = getCacheFilePath();
 		fs.writeFileSync(cachePath, JSON.stringify(cached, null, 2), 'utf-8');
 	} catch (error) {
-		console.warn('Failed to write models cache:', error);
+		logger.warnWithError('models-cache', 'Failed to write models cache', error);
 	}
 }

@@ -5,6 +5,7 @@
 import {WebSocketServer, WebSocket} from 'ws';
 import {randomUUID} from 'crypto';
 import * as fs from 'fs';
+import {logger} from '@/utils/logger';
 import {
 	ServerMessage,
 	ClientMessage,
@@ -277,7 +278,7 @@ export class VSCodeServer {
 				const message = JSON.parse(data.toString()) as ClientMessage;
 				this.handleMessage(message);
 			} catch (error) {
-				console.error('Failed to parse message from VS Code:', error);
+				logger.warnWithError('vscode-server', 'Failed to parse message from VS Code', error);
 			}
 		});
 

@@ -5,6 +5,7 @@ import {promptPath} from '../config/index';
 import type {AISDKCoreTool} from '../types/index';
 import type {InputState} from '../types/hooks';
 import {PlaceholderType} from '../types/hooks';
+import {logger} from '@/utils/logger';
 
 /**
  * Get the default shell for the current platform
@@ -84,10 +85,10 @@ export function processPromptTemplate(
 		try {
 			systemPrompt = readFileSync(promptPath, 'utf-8');
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error);
-			console.warn(
-				`Failed to load system prompt from ${promptPath}: ${errorMessage}`,
+			logger.warnWithError(
+				'prompt-processor',
+				`Failed to load system prompt from ${promptPath}`,
+				error,
 			);
 		}
 	}
@@ -105,10 +106,10 @@ export function processPromptTemplate(
 			const agentsContent = readFileSync(agentsPath, 'utf-8');
 			systemPrompt += `\n\nAdditional Context...\n\n${agentsContent}`;
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error);
-			console.warn(
-				`Failed to load AGENTS.md from ${agentsPath}: ${errorMessage}`,
+			logger.warnWithError(
+				'prompt-processor',
+				`Failed to load AGENTS.md from ${agentsPath}`,
+				error,
 			);
 		}
 	}

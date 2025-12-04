@@ -4,6 +4,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
 import ignore from 'ignore';
 import {fuzzyScoreFilePath} from './fuzzy-matching';
+import {logger} from '@/utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -92,7 +93,7 @@ async function getAllFiles(cwd: string): Promise<string[]> {
 		return allFiles;
 	} catch (error) {
 		// If find fails, return empty array
-		console.error('Failed to list files:', error);
+		logger.warnWithError('file-autocomplete', 'Failed to list files', error);
 		return [];
 	}
 }

@@ -15,6 +15,7 @@ import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
 import {commandRegistry} from '@/commands';
 import {appConfig, reloadAppConfig} from '@/config/index';
 import {getLSPManager, type LSPInitResult} from '@/lsp/index';
+import {logger} from '@/utils/logger';
 import {
 	clearCommand,
 	commandsCommand,
@@ -240,7 +241,7 @@ export function useAppInitialization({
 			}
 		} catch (error) {
 			// Silent failure for LSP - it's optional
-			console.error('LSP initialization error:', error);
+			logger.warnWithError('app-init', 'LSP initialization error', error);
 		}
 	};
 

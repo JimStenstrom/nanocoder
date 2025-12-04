@@ -12,6 +12,7 @@ import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {getToolManager} from '@/message-handler';
 import {parseToolArguments} from '@/utils/tool-args-parser';
 import {formatError} from '@/utils/error-formatter';
+import {logger} from '@/utils/logger';
 
 interface ToolConfirmationProps {
 	toolCall: ToolCall;
@@ -68,7 +69,7 @@ export default function ToolConfirmation({
 							return;
 						}
 					} catch (error) {
-						console.error('Error running validator:', error);
+						logger.warnWithError('tool-confirmation', 'Error running validator', error);
 						const errorMsg = `Validation error: ${formatError(error)}`;
 						setValidationError(errorMsg);
 						setHasValidationError(true);
@@ -87,7 +88,7 @@ export default function ToolConfirmation({
 					const preview = await formatter(parsedArgs);
 					setFormatterPreview(preview);
 				} catch (error) {
-					console.error('Error loading formatter preview:', error);
+					logger.warnWithError('tool-confirmation', 'Error loading formatter preview', error);
 					setHasFormatterError(true);
 					setFormatterPreview(
 						<Text color={colors.error}>Error: {String(error)}</Text>,

@@ -2,6 +2,7 @@ import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {WebSocketClientTransport} from '@modelcontextprotocol/sdk/client/websocket.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type {MCPServer, MCPTransportType} from '../types/mcp.js';
+import {logger} from '@/utils/logger';
 
 // Union type for all supported client transports
 type ClientTransport =
@@ -81,7 +82,8 @@ export class TransportFactory {
 		// Note: The WebSocketClientTransport doesn't directly support headers in the current SDK
 		// Authentication would need to be handled at the protocol level or via URL parameters
 		if (server.auth) {
-			console.warn(
+			logger.warn(
+				'mcp-transport',
 				`WebSocket transport for server "${server.name}" has auth config, but current SDK doesn't support headers for WebSocket transport`,
 			);
 		}
@@ -117,7 +119,8 @@ export class TransportFactory {
 		const transport = new StreamableHTTPClientTransport(url, transportOptions);
 
 		if (server.auth) {
-			console.warn(
+			logger.warn(
+				'mcp-transport',
 				`HTTP transport for server "${server.name}" has auth config, but current SDK doesn't support custom headers for HTTP transport`,
 			);
 		}

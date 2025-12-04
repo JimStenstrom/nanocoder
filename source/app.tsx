@@ -15,6 +15,7 @@ import ToolConfirmation from '@/components/tool-confirmation';
 import ToolExecutionIndicator from '@/components/tool-execution-indicator';
 import BashExecutionIndicator from '@/components/bash-execution-indicator';
 import {setGlobalMessageQueue} from '@/utils/message-queue';
+import {logger} from '@/utils/logger';
 import Spinner from 'ink-spinner';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import {RecommendationsDisplay} from '@/commands/recommendations';
@@ -82,7 +83,7 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 			}
 			// This will be connected to chat handler after initialization
 			// For now, store it for processing
-			console.log('VS Code prompt received:', enhancedPrompt);
+			logger.debug('app', `VS Code prompt received: ${enhancedPrompt}`);
 		},
 		[],
 	);

@@ -7,6 +7,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {getAppDataPath, getConfigPath} from '@/config/paths';
 import {logInfo, logWarning} from '@/utils/message-queue';
+import {logger} from '@/utils/logger';
 import type {UsageData, SessionUsage, DailyAggregate} from '../types/usage';
 
 const USAGE_FILE_NAME = 'usage.json';
@@ -104,7 +105,7 @@ export function readUsageData(): UsageData {
 
 		return data;
 	} catch (error) {
-		console.warn('Failed to read usage data:', error);
+		logger.warnWithError('usage-storage', 'Failed to read usage data', error);
 		return createEmptyUsageData();
 	}
 }
@@ -118,7 +119,7 @@ export function writeUsageData(data: UsageData): void {
 		const filePath = getUsageFilePath();
 		fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 	} catch (error) {
-		console.warn('Failed to write usage data:', error);
+		logger.warnWithError('usage-storage', 'Failed to write usage data', error);
 	}
 }
 
@@ -228,6 +229,6 @@ export function clearUsageData(): void {
 			fs.unlinkSync(filePath);
 		}
 	} catch (error) {
-		console.warn('Failed to clear usage data:', error);
+		logger.warnWithError('usage-storage', 'Failed to clear usage data', error);
 	}
 }

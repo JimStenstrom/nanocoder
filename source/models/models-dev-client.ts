@@ -6,6 +6,7 @@
 import {request} from 'undici';
 import {readCache, writeCache} from './models-cache.js';
 import type {ModelsDevDatabase, ModelInfo} from './models-types.js';
+import {logger} from '@/utils/logger';
 
 const MODELS_DEV_API_URL = 'https://models.dev/api.json';
 
@@ -166,12 +167,12 @@ async function fetchModelsData(): Promise<ModelsDevDatabase | null> {
 
 		return data;
 	} catch (error) {
-		console.warn('Failed to fetch from models.dev:', error);
+		logger.warnWithError('models-dev-client', 'Failed to fetch from models.dev', error);
 
 		// Try to use cached data as fallback
 		const cached = readCache();
 		if (cached) {
-			console.log('Using cached models data');
+			logger.info('models-dev-client', 'Using cached models data');
 			return cached.data;
 		}
 

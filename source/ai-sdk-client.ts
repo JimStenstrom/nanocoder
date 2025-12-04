@@ -13,6 +13,7 @@ import type {
 } from '@/types/index';
 import {XMLToolCallParser} from '@/tool-calling/xml-parser';
 import {getModelContextLimit} from '@/models/index.js';
+import {logger} from '@/utils/logger';
 
 /**
  * Parses API errors into user-friendly messages.
@@ -372,11 +373,14 @@ export class AISDKClient implements LLMClient {
 				throw new Error('Operation was cancelled');
 			}
 
-			// Log detailed error for debugging
-			console.error('AI SDK Error:', error);
+			// Log detailed error for debugging (file only, UI gets user-friendly message)
 			if (error instanceof Error) {
-				console.error('Error message:', error.message);
-				console.error('Error stack:', error.stack);
+				logger.error('ai-sdk-client', `AI SDK Error: ${error.message}`, false);
+				if (error.stack) {
+					logger.debug('ai-sdk-client', `Stack trace: ${error.stack}`);
+				}
+			} else {
+				logger.error('ai-sdk-client', `AI SDK Error: ${String(error)}`, false);
 			}
 
 			// Parse and throw a user-friendly error
@@ -513,11 +517,14 @@ export class AISDKClient implements LLMClient {
 				throw new Error('Operation was cancelled');
 			}
 
-			// Log detailed error for debugging
-			console.error('AI SDK Error:', error);
+			// Log detailed error for debugging (file only, UI gets user-friendly message)
 			if (error instanceof Error) {
-				console.error('Error message:', error.message);
-				console.error('Error stack:', error.stack);
+				logger.error('ai-sdk-client', `AI SDK Error: ${error.message}`, false);
+				if (error.stack) {
+					logger.debug('ai-sdk-client', `Stack trace: ${error.stack}`);
+				}
+			} else {
+				logger.error('ai-sdk-client', `AI SDK Error: ${String(error)}`, false);
 			}
 
 			// Parse and throw a user-friendly error

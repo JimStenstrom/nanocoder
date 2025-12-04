@@ -4,6 +4,7 @@ import InfoMessage from '@/components/info-message';
 import SuccessMessage from '@/components/success-message';
 import WarningMessage from '@/components/warning-message';
 import type {MessageType} from '@/types/index';
+import {setUIErrorHandler, logger} from '@/utils/logger';
 
 // Global message queue function - will be set by App component
 let globalAddToChatQueue: ((component: React.ReactNode) => void) | null = null;
@@ -14,6 +15,11 @@ export function setGlobalMessageQueue(
 	addToChatQueue: (component: React.ReactNode) => void,
 ) {
 	globalAddToChatQueue = addToChatQueue;
+
+	// Connect the logger's error handler to the UI
+	setUIErrorHandler((message: string) => {
+		logError(message, true);
+	});
 }
 
 // Helper function to generate stable keys
@@ -29,8 +35,15 @@ function addMessageToQueue(
 	hideBox: boolean = true,
 ) {
 	if (!globalAddToChatQueue) {
-		// Fallback to console if queue not available
-		console[type === 'error' ? 'error' : 'log'](message);
+		// Fallback to file logger if queue not available (e.g., during startup)
+		// This prevents console output from corrupting the TUI
+		if (type === 'error') {
+			logger.error('message-queue', message, false); // false = don't recurse back to UI
+		} else if (type === 'warning') {
+			logger.warn('message-queue', message);
+		} else {
+			logger.info('message-queue', message);
+		}
 		return;
 	}
 
