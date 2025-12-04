@@ -1,3 +1,13 @@
+# 1.17.3
+
+- Added GitHub models as a provider addressing issue #67 with minimal code changes. Thanks to @JimStenstrom
+
+- Added `/lsp` command to list connected LSP servers. Thanks to @anithanarayanswamy
+
+- Fix: Improve error handling for Ollama JSON parsing. Addresses issue #87. Thanks to @JimStenstrom
+
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+
 # 1.17.2
 
 - Fix: Remote GitHub MCP Connection Fails with 401 Unauthorized.

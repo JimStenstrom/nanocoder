@@ -21,7 +21,9 @@ test('parseAPIError - handles Ollama unmarshal error from issue #87', t => {
 });
 
 test('parseAPIError - handles unmarshal error without retry wrapper', t => {
-	const error = new Error("unmarshal: invalid character '{' after top-level value");
+	const error = new Error(
+		"unmarshal: invalid character '{' after top-level value",
+	);
 
 	const result = parseAPIError(error);
 
@@ -44,7 +46,9 @@ test('parseAPIError - handles 500 error with invalid character (status code take
 });
 
 test('parseAPIError - handles 500 error without JSON parsing issue', t => {
-	const error = new Error('500 Internal Server Error: database connection failed');
+	const error = new Error(
+		'500 Internal Server Error: database connection failed',
+	);
 
 	const result = parseAPIError(error);
 
@@ -85,30 +89,30 @@ test('parseAPIError - handles non-Error objects', t => {
 });
 
 test('parseAPIError - handles context length errors', t => {
-	const error = new Error(
-		'context length exceeded',
-	);
+	const error = new Error('context length exceeded');
 
 	const result = parseAPIError(error);
 
 	// Use exact assertion instead of OR condition
-	t.is(result, 'Context too large: Please reduce the conversation length or message size');
+	t.is(
+		result,
+		'Context too large: Please reduce the conversation length or message size',
+	);
 });
 
 test('parseAPIError - handles too many tokens errors', t => {
-	const error = new Error(
-		'too many tokens in the request',
-	);
+	const error = new Error('too many tokens in the request');
 
 	const result = parseAPIError(error);
 
-	t.is(result, 'Context too large: Please reduce the conversation length or message size');
+	t.is(
+		result,
+		'Context too large: Please reduce the conversation length or message size',
+	);
 });
 
 test('parseAPIError - handles 400 with context length in message', t => {
-	const error = new Error(
-		'400 Bad Request: context length exceeded',
-	);
+	const error = new Error('400 Bad Request: context length exceeded');
 
 	const result = parseAPIError(error);
 
@@ -137,7 +141,10 @@ test('parseAPIError - handles 429 rate limit error', t => {
 
 	const result = parseAPIError(error);
 
-	t.is(result, 'Rate limit exceeded: Too many requests. Please wait and try again');
+	t.is(
+		result,
+		'Rate limit exceeded: Too many requests. Please wait and try again',
+	);
 });
 
 test('parseAPIError - handles 502 bad gateway error', t => {
@@ -161,11 +168,16 @@ test('parseAPIError - handles reduce tokens message', t => {
 
 	const result = parseAPIError(error);
 
-	t.is(result, 'Too many tokens: Please shorten your message or clear conversation history');
+	t.is(
+		result,
+		'Too many tokens: Please shorten your message or clear conversation history',
+	);
 });
 
 test('parseAPIError - cleans up unknown errors', t => {
-	const error = new Error('Error: Something unexpected happened\nWith more details');
+	const error = new Error(
+		'Error: Something unexpected happened\nWith more details',
+	);
 
 	const result = parseAPIError(error);
 

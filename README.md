@@ -460,6 +460,7 @@ You can override this directory using `NANOCODER_DATA_DIR`.
 - `/theme` - Select a theme for the Nanocoder CLI
 - `/update` - Update Nanocoder to the latest version
 - `/usage` – Get current model context usage visually
+- `/lsp` – List connected LSP servers
 - `!command` - Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM)
 - `@file` - Include file contents in messages automatically via fuzzy search as you type
 
