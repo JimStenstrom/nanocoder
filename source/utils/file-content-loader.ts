@@ -1,5 +1,6 @@
 import {resolve} from 'node:path';
 import {readFile, stat} from 'node:fs/promises';
+import {formatError} from '@/utils/error-formatter';
 
 interface FileContentResult {
 	success: boolean;
@@ -49,8 +50,8 @@ export async function loadFileContent(
 		let content: string;
 		try {
 			content = await readFile(absPath, 'utf-8');
-		} catch {
-			// File might be binary or unreadable
+		} catch (error) {
+			console.debug(`[file-content-loader] Failed to read ${absPath}: ${formatError(error)}`);
 			return {
 				success: false,
 				error: 'Failed to read file (might be binary)',

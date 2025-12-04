@@ -35,7 +35,7 @@ class PromptHistory {
 			}
 			this.currentIndex = -1;
 		} catch {
-			// File doesn't exist yet, start with empty history
+			// Expected: history file doesn't exist on first run
 			this.history = [];
 			this.currentIndex = -1;
 		}

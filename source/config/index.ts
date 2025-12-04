@@ -5,6 +5,7 @@ import {fileURLToPath} from 'url';
 import {homedir} from 'os';
 import {config as loadEnv} from 'dotenv';
 import {logError} from '@/utils/message-queue';
+import {formatError} from '@/utils/error-formatter';
 import {loadPreferences} from '@/config/preferences';
 import {getThemeColors, defaultTheme} from '@/config/themes';
 import {substituteEnvVars} from '@/config/env-substitution';
@@ -101,8 +102,8 @@ function loadAppConfig(): AppConfig {
 				mcpServers: processedData.nanocoder.mcpServers ?? [],
 			};
 		}
-	} catch {
-		//
+	} catch (error) {
+		console.debug(`[config] Failed to parse agents.config.json: ${formatError(error)}`);
 	}
 
 	return {};

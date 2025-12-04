@@ -1,5 +1,6 @@
 import {readFileSync, existsSync} from 'fs';
 import {join} from 'path';
+import {formatError} from '@/utils/error-formatter';
 
 export interface ExistingRules {
 	source: string;
@@ -55,8 +56,8 @@ export class ExistingRulesExtractor {
 							type: this.determineFileType(configFile),
 						});
 					}
-				} catch {
-					// Skip files we can't read
+				} catch (error) {
+					console.debug(`[existing-rules-extractor] Failed to read ${configFile}: ${formatError(error)}`);
 					continue;
 				}
 			}

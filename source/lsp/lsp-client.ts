@@ -27,6 +27,7 @@ import {
 	FormattingOptions,
 	CompletionTriggerKind,
 } from './protocol';
+import {formatError} from '@/utils/error-formatter';
 
 export interface LSPServerConfig {
 	name: string;
@@ -108,8 +109,8 @@ export class LSPClient extends EventEmitter {
 			await this.sendRequest(LSPMethods.Shutdown, null);
 			// Send exit notification
 			this.sendNotification(LSPMethods.Exit, null);
-		} catch {
-			// Ignore errors during shutdown
+		} catch (error) {
+			console.debug(`[lsp-client] Error during shutdown: ${formatError(error)}`);
 		}
 
 		// Force kill if still running
@@ -281,8 +282,8 @@ export class LSPClient extends EventEmitter {
 					textDocument: {uri},
 				})) as {items?: Diagnostic[]} | null;
 				return result?.items || [];
-			} catch {
-				// Fall back to cached diagnostics if pull not supported
+			} catch (error) {
+				console.debug(`[lsp-client] Pull diagnostics failed: ${formatError(error)}`);
 				return [];
 			}
 		}
@@ -446,8 +447,8 @@ export class LSPClient extends EventEmitter {
 					| JsonRpcResponse
 					| JsonRpcNotification;
 				this.handleMessage(message);
-			} catch {
-				// Ignore malformed JSON messages
+			} catch (error) {
+				console.debug(`[lsp-client] Failed to parse JSON message: ${formatError(error)}`);
 			}
 		}
 	}

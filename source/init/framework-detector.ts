@@ -1,5 +1,6 @@
 import {readFileSync, existsSync} from 'fs';
 import {join} from 'path';
+import {formatError} from '@/utils/error-formatter';
 
 interface FrameworkInfo {
 	name: string;
@@ -163,8 +164,8 @@ export class FrameworkDetector {
 					}
 				}
 			}
-		} catch {
-			// Ignore parsing errors
+		} catch (error) {
+			console.debug(`[framework-detector] Failed to parse package.json: ${formatError(error)}`);
 		}
 	}
 
@@ -191,8 +192,8 @@ export class FrameworkDetector {
 					result.frameworks.push(framework);
 				}
 			}
-		} catch {
-			// Ignore parsing errors
+		} catch (error) {
+			console.debug(`[framework-detector] Failed to parse requirements.txt: ${formatError(error)}`);
 		}
 	}
 
@@ -251,8 +252,8 @@ export class FrameworkDetector {
 					confidence: 'high',
 				});
 			}
-		} catch {
-			// Ignore parsing errors
+		} catch (error) {
+			console.debug(`[framework-detector] Failed to parse Cargo.toml: ${formatError(error)}`);
 		}
 	}
 
@@ -291,8 +292,8 @@ export class FrameworkDetector {
 					confidence: 'high',
 				});
 			}
-		} catch {
-			// Ignore parsing errors
+		} catch (error) {
+			console.debug(`[framework-detector] Failed to parse go.mod: ${formatError(error)}`);
 		}
 	}
 

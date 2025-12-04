@@ -5,6 +5,7 @@
 import {WebSocketServer, WebSocket} from 'ws';
 import {randomUUID} from 'crypto';
 import * as fs from 'fs';
+import {formatError} from '@/utils/error-formatter';
 import {
 	ServerMessage,
 	ClientMessage,
@@ -83,7 +84,8 @@ export class VSCodeServer {
 				this.wss.on('error', _error => {
 					resolve(false);
 				});
-			} catch {
+			} catch (error) {
+				console.debug(`[vscode-server] Failed to start WebSocket server: ${formatError(error)}`);
 				resolve(false);
 			}
 		});

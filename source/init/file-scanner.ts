@@ -1,5 +1,6 @@
 import {readFileSync, readdirSync, statSync, existsSync} from 'fs';
 import {join, relative, basename} from 'path';
+import {formatError} from '@/utils/error-formatter';
 
 interface ScanResult {
 	files: string[];
@@ -40,8 +41,8 @@ export class FileScanner {
 						.replace(/\?/g, '.') // ? -> .
 						.replace(/\/$/, ''); // Remove trailing slash
 				});
-		} catch {
-			// Ignore gitignore parsing errors
+		} catch (error) {
+			console.debug(`[file-scanner] Failed to parse .gitignore: ${formatError(error)}`);
 		}
 	}
 
@@ -141,13 +142,13 @@ export class FileScanner {
 					}
 
 					result.totalFiles++;
-				} catch {
-					// Skip files we can't stat (permission issues, etc.)
+				} catch (error) {
+					console.debug(`[file-scanner] Cannot stat ${fullPath}: ${formatError(error)}`);
 					continue;
 				}
 			}
-		} catch {
-			// Skip directories we can't read
+		} catch (error) {
+			console.debug(`[file-scanner] Cannot read directory ${dirPath}: ${formatError(error)}`);
 			return;
 		}
 	}

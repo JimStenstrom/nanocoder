@@ -6,6 +6,7 @@ import {
 } from '@/init/framework-detector';
 import {readFileSync, existsSync} from 'fs';
 import {join, basename} from 'path';
+import {formatError} from '@/utils/error-formatter';
 
 export interface ProjectAnalysis {
 	projectPath: string;
@@ -282,8 +283,8 @@ export class ProjectAnalyzer {
 						repository = pkg.repository.url;
 					}
 				}
-			} catch {
-				// Ignore parsing errors
+			} catch (error) {
+				console.debug(`[project-analyzer] Failed to parse package.json: ${formatError(error)}`);
 			}
 		}
 
@@ -298,8 +299,8 @@ export class ProjectAnalyzer {
 
 					if (nameMatch) projectName = nameMatch[1];
 					if (descMatch) description = descMatch[1];
-				} catch {
-					// Ignore parsing errors
+				} catch (error) {
+					console.debug(`[project-analyzer] Failed to parse Cargo.toml: ${formatError(error)}`);
 				}
 			}
 		}
@@ -326,8 +327,8 @@ export class ProjectAnalyzer {
 							}
 						}
 						break;
-					} catch {
-						// Ignore parsing errors
+					} catch (error) {
+						console.debug(`[project-analyzer] Failed to parse ${readmeFile}: ${formatError(error)}`);
 					}
 				}
 			}

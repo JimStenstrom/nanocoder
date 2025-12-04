@@ -7,6 +7,7 @@ import ToolMessage from '@/components/tool-message';
 import ErrorMessage from '@/components/error-message';
 import type {MessageSubmissionOptions, Message} from '@/types/index';
 import type {LLMClient} from '@/types/core';
+import {formatError} from '@/utils/error-formatter';
 
 export async function handleMessageSubmission(
 	message: string,
@@ -56,8 +57,8 @@ export async function handleMessageSubmission(
 					fullOutput: string;
 					llmContext: string;
 				};
-			} catch {
-				// If parsing fails, treat as plain string
+			} catch (error) {
+				console.debug(`[appUtils] Failed to parse bash result JSON: ${formatError(error)}`);
 				result = {
 					fullOutput: resultString,
 					llmContext:

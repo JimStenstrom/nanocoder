@@ -3,6 +3,7 @@ import {highlight} from 'cli-highlight';
 import type {Colors} from '../types/markdown-parser.js';
 import {decodeHtmlEntities} from './html-entities.js';
 import {parseMarkdownTable} from './table-parser.js';
+import {formatError} from '@/utils/error-formatter';
 
 // Basic markdown parser for terminal
 export function parseMarkdown(text: string, themeColors: Colors): string {
@@ -41,8 +42,8 @@ export function parseMarkdown(text: string, themeColors: Colors): string {
 				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
 				codeBlocks.push(highlighted);
 				return placeholder;
-			} catch {
-				// Fallback to plain colored text if highlighting fails
+			} catch (error) {
+				console.debug(`[markdown-parser] Syntax highlighting failed for ${lang || 'unknown'}: ${formatError(error)}`);
 				const formatted = chalk.hex(themeColors.tool)(String(code).trim());
 				const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
 				codeBlocks.push(formatted);

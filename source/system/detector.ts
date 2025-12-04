@@ -2,6 +2,7 @@ import {exec} from 'node:child_process';
 import {promisify} from 'node:util';
 import * as si from 'systeminformation';
 import {SystemCapabilities} from '@/types/index';
+import {formatError} from '@/utils/error-formatter';
 
 const execAsync = promisify(exec);
 
@@ -110,8 +111,8 @@ export class SystemDetector {
 					memory: memoryGB,
 				};
 			}
-		} catch {
-			// Fallback to basic detection if systeminformation fails
+		} catch (error) {
+			console.debug(`[system-detector] GPU detection failed: ${formatError(error)}`);
 		}
 
 		return {
@@ -150,7 +151,8 @@ export class SystemDetector {
 				connected: true,
 				speed,
 			};
-		} catch {
+		} catch (error) {
+			console.debug(`[system-detector] Network detection failed: ${formatError(error)}`);
 			return {connected: false};
 		}
 	}

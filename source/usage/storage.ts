@@ -7,6 +7,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {getAppDataPath, getConfigPath} from '@/config/paths';
 import {logInfo, logWarning} from '@/utils/message-queue';
+import {formatError} from '@/utils/error-formatter';
 import type {UsageData, SessionUsage, DailyAggregate} from '../types/usage';
 
 const USAGE_FILE_NAME = 'usage.json';
@@ -18,7 +19,8 @@ function getLegacyUsageFilePath(): string {
 	try {
 		const configDir = getConfigPath();
 		return path.join(configDir, USAGE_FILE_NAME);
-	} catch {
+	} catch (error) {
+		console.debug(`[usage-storage] Failed to get legacy usage file path: ${formatError(error)}`);
 		return '';
 	}
 }
@@ -54,7 +56,8 @@ function getUsageFilePath(): string {
 				try {
 					fs.unlinkSync(legacyPath);
 					logInfo(`Successfully migrated usage data to: ${newPath}`);
-				} catch {
+				} catch (error) {
+					console.debug(`[usage-storage] Failed to remove legacy file: ${formatError(error)}`);
 					logWarning(
 						`Migrated usage data to new location, but could not remove old file at ${legacyPath}. You may want to manually delete it.`,
 					);

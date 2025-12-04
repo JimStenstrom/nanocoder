@@ -13,6 +13,7 @@ import type {
 } from '@/types/index';
 import {XMLToolCallParser} from '@/tool-calling/xml-parser';
 import {getModelContextLimit} from '@/models/index.js';
+import {formatError} from '@/utils/error-formatter';
 
 /**
  * Parses API errors into user-friendly messages.
@@ -202,8 +203,8 @@ export class AISDKClient implements LLMClient {
 		try {
 			const contextSize = await getModelContextLimit(this.currentModel);
 			this.cachedContextSize = contextSize || 0;
-		} catch {
-			// Silently fail - context size will remain 0
+		} catch (error) {
+			console.debug(`[ai-sdk-client] Failed to fetch context size: ${formatError(error)}`);
 			this.cachedContextSize = 0;
 		}
 	}

@@ -4,6 +4,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
 import ignore from 'ignore';
 import {fuzzyScoreFilePath} from './fuzzy-matching';
+import {formatError} from '@/utils/error-formatter';
 
 const execAsync = promisify(exec);
 
@@ -39,9 +40,8 @@ function loadGitignore(cwd: string): ReturnType<typeof ignore> {
 		try {
 			const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
 			ig.add(gitignoreContent);
-		} catch {
-			// Silently fail if we can't read .gitignore
-			// The hardcoded ignores above will still apply
+		} catch (error) {
+			console.debug(`[file-autocomplete] Failed to read .gitignore: ${formatError(error)}`);
 		}
 	}
 

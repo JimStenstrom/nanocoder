@@ -154,7 +154,7 @@ function findCommand(command: string): string | null {
 		execSync(`which ${command}`, {stdio: 'ignore'});
 		return command;
 	} catch {
-		// Not in PATH
+		// Expected: command not in PATH
 	}
 
 	// Check local node_modules/.bin
@@ -174,6 +174,7 @@ function verifyServer(checkCommand: string): boolean {
 		execSync(checkCommand, {stdio: 'ignore', timeout: 5000});
 		return true;
 	} catch {
+		// Expected: server not installed or check command failed
 		return false;
 	}
 }

@@ -37,6 +37,7 @@ export function isVSCodeCliAvailable(): boolean {
 		execSync('code --version', {stdio: 'ignore'});
 		return true;
 	} catch {
+		// Expected: VS Code CLI not installed
 		return false;
 	}
 }
@@ -52,6 +53,7 @@ export function isExtensionInstalled(): boolean {
 		});
 		return output.toLowerCase().includes('nanocollective.nanocoder-vscode');
 	} catch {
+		// Expected: VS Code CLI not installed or extension check failed
 		return false;
 	}
 }
