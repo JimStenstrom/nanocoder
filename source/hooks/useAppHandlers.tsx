@@ -1,5 +1,7 @@
-import {handleMessageSubmission} from '@/app/utils/appUtils';
-import {createClearMessagesHandler} from '@/app/utils/appUtils';
+import {
+	createClearMessagesHandler,
+	handleMessageSubmission,
+} from '@/app/utils/app-util';
 import ErrorMessage from '@/components/error-message';
 import Status from '@/components/status';
 import SuccessMessage from '@/components/success-message';
