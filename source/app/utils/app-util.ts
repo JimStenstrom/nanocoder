@@ -13,6 +13,24 @@ import type {LLMClient} from '@/types/core';
 import type {Message, MessageSubmissionOptions} from '@/types/index';
 import React from 'react';
 
+/** Command names that require special handling in the app */
+const SPECIAL_COMMANDS = {
+	CLEAR: 'clear',
+	MODEL: 'model',
+	PROVIDER: 'provider',
+	THEME: 'theme',
+	MODEL_DATABASE: 'model-database',
+	SETUP_CONFIG: 'setup-config',
+	STATUS: 'status',
+	CHECKPOINT: 'checkpoint',
+} as const;
+
+/** Checkpoint subcommands */
+const CHECKPOINT_SUBCOMMANDS = {
+	LOAD: 'load',
+	RESTORE: 'restore',
+} as const;
+
 export async function handleMessageSubmission(
 	message: string,
 	options: MessageSubmissionOptions,
@@ -37,7 +55,9 @@ export async function handleMessageSubmission(
 		messages,
 		setIsBashExecuting,
 		setCurrentBashCommand,
-	} = options; // Parse the input to determine its type
+	} = options;
+
+	// Parse the input to determine its type
 	const parsedInput = parseInput(message);
 
 	// Handle bash commands (prefixed with !)
@@ -156,31 +176,31 @@ ${result.fullOutput || '(No output)'}`;
 			return;
 		} else {
 			// Handle special commands that need app state access
-			if (commandName === 'clear') {
+			if (commandName === SPECIAL_COMMANDS.CLEAR) {
 				await onClearMessages();
 				onCommandComplete?.();
-				// Still show the clear command result
-			} else if (commandName === 'model') {
+				return;
+			} else if (commandName === SPECIAL_COMMANDS.MODEL) {
 				onEnterModelSelectionMode();
 				onCommandComplete?.();
 				return;
-			} else if (commandName === 'provider') {
+			} else if (commandName === SPECIAL_COMMANDS.PROVIDER) {
 				onEnterProviderSelectionMode();
 				onCommandComplete?.();
 				return;
-			} else if (commandName === 'theme') {
+			} else if (commandName === SPECIAL_COMMANDS.THEME) {
 				onEnterThemeSelectionMode();
 				onCommandComplete?.();
 				return;
-			} else if (commandName === 'model-database') {
+			} else if (commandName === SPECIAL_COMMANDS.MODEL_DATABASE) {
 				onEnterModelDatabaseMode();
 				onCommandComplete?.();
 				return;
-			} else if (commandName === 'setup-config') {
+			} else if (commandName === SPECIAL_COMMANDS.SETUP_CONFIG) {
 				onEnterConfigWizardMode();
 				onCommandComplete?.();
 				return;
-			} else if (commandName === 'status') {
+			} else if (commandName === SPECIAL_COMMANDS.STATUS) {
 				onShowStatus();
 				// Status adds to queue synchronously, give React time to render
 				setTimeout(() => onCommandComplete?.(), DELAY_COMMAND_COMPLETE_MS);
@@ -190,8 +210,9 @@ ${result.fullOutput || '(No output)'}`;
 			// Handle checkpoint load specially for interactive mode
 			const commandParts = message.slice(1).trim().split(/\s+/);
 			if (
-				commandParts[0] === 'checkpoint' &&
-				(commandParts[1] === 'load' || commandParts[1] === 'restore') &&
+				commandParts[0] === SPECIAL_COMMANDS.CHECKPOINT &&
+				(commandParts[1] === CHECKPOINT_SUBCOMMANDS.LOAD ||
+					commandParts[1] === CHECKPOINT_SUBCOMMANDS.RESTORE) &&
 				commandParts.length === 2
 			) {
 				// Interactive checkpoint load - no specific checkpoint name provided
@@ -208,6 +229,7 @@ ${result.fullOutput || '(No output)'}`;
 								hideBox: true,
 							}),
 						);
+						onCommandComplete?.();
 						return;
 					}
 
@@ -223,6 +245,7 @@ ${result.fullOutput || '(No output)'}`;
 							hideBox: true,
 						}),
 					);
+					onCommandComplete?.();
 					return;
 				}
 			}
