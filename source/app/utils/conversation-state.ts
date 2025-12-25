@@ -23,6 +23,7 @@ interface ConversationState {
 export class ConversationStateManager {
 	private state: ConversationState | null = null;
 	private maxRecentToolCalls = 5;
+	private maxCompletedActions = 10;
 
 	/**
 	 * Initialize conversation state from the first user message
@@ -72,6 +73,9 @@ export class ConversationStateManager {
 		// Add completed action
 		const actionDescription = this.describeToolAction(toolCall, result);
 		this.state.progress.completedActions.push(actionDescription);
+		if (this.state.progress.completedActions.length > this.maxCompletedActions) {
+			this.state.progress.completedActions.shift();
+		}
 
 		// Update total estimated steps if needed
 		if (
