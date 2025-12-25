@@ -1,4 +1,4 @@
-import type {ConversationStateManager} from '@/app/utils/conversationState';
+import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import ErrorMessage from '@/components/error-message';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {ToolCall, ToolResult} from '@/types/core';
