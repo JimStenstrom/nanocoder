@@ -58,7 +58,7 @@ interface UseAppInitializationProps {
 	setPreferencesLoaded: (loaded: boolean) => void;
 	setCustomCommandsCount: (count: number) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
+	getNextComponentKey: () => number;
 	customCommandCache: Map<string, CustomCommand>;
 	setIsConfigWizardMode: (mode: boolean) => void;
 }
@@ -79,7 +79,7 @@ export function useAppInitialization({
 	setPreferencesLoaded,
 	setCustomCommandsCount,
 	addToChatQueue,
-	componentKeyCounter,
+	getNextComponentKey,
 	customCommandCache,
 	setIsConfigWizardMode,
 }: UseAppInitializationProps) {
@@ -301,7 +301,7 @@ export function useAppInitialization({
 			if (error instanceof ConfigurationError) {
 				addToChatQueue(
 					<InfoMessage
-						key={`config-error-${componentKeyCounter}`}
+						key={`config-error-${getNextComponentKey()}`}
 						message="Configuration needed. Let's set up your providers..."
 						hideBox={true}
 					/>,
@@ -314,7 +314,7 @@ export function useAppInitialization({
 				// Regular error - show simple error message
 				addToChatQueue(
 					<ErrorMessage
-						key={`init-error-${componentKeyCounter}`}
+						key={`init-error-${getNextComponentKey()}`}
 						message={`No providers available: ${String(error)}`}
 						hideBox={true}
 					/>,
@@ -328,7 +328,7 @@ export function useAppInitialization({
 		} catch (error) {
 			addToChatQueue(
 				<ErrorMessage
-					key={`commands-error-${componentKeyCounter}`}
+					key={`commands-error-${getNextComponentKey()}`}
 					message={`Failed to load custom commands: ${String(error)}`}
 					hideBox={true}
 				/>,

@@ -18,7 +18,7 @@ import type React from 'react';
  * @param currentProvider - Current LLM provider name
  * @param currentModel - Current model name
  * @param addToChatQueue - Callback to add warning message to chat
- * @param componentKeyCounter - Unique key for React component
+ * @param getNextComponentKey - Function to generate unique React keys
  */
 export const checkContextUsage = async (
 	allMessages: Message[],
@@ -26,7 +26,7 @@ export const checkContextUsage = async (
 	currentProvider: string,
 	currentModel: string,
 	addToChatQueue: (component: React.ReactNode) => void,
-	componentKeyCounter: number,
+	getNextComponentKey: () => number,
 ): Promise<void> => {
 	try {
 		const contextLimit = await getModelContextLimit(currentModel);
@@ -49,7 +49,7 @@ export const checkContextUsage = async (
 		if (percentUsed >= TOKEN_THRESHOLD_CRITICAL_PERCENT) {
 			addToChatQueue(
 				<WarningMessage
-					key={`context-warning-${componentKeyCounter}`}
+					key={`context-warning-${getNextComponentKey()}`}
 					message={`Context ${Math.round(
 						percentUsed,
 					)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens). Consider using /clear to start fresh.`}
@@ -59,7 +59,7 @@ export const checkContextUsage = async (
 		} else if (percentUsed >= TOKEN_THRESHOLD_WARNING_PERCENT) {
 			addToChatQueue(
 				<WarningMessage
-					key={`context-warning-${componentKeyCounter}`}
+					key={`context-warning-${getNextComponentKey()}`}
 					message={`Context ${Math.round(
 						percentUsed,
 					)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens).`}

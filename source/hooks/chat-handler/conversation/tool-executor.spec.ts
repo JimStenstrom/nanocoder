@@ -18,7 +18,7 @@ test('executeToolsDirectly - returns empty array for no tools', async t => {
 		null,
 		conversationStateManager,
 		() => {},
-		1,
+		() => 1,
 	);
 
 	t.deepEqual(results, []);
@@ -44,7 +44,7 @@ test('executeToolsDirectly - does not throw on execution', async t => {
 			null,
 			conversationStateManager,
 			() => {},
-			1,
+			() => 1,
 		);
 	});
 });

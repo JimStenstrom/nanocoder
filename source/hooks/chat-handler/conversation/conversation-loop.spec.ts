@@ -19,7 +19,7 @@ test('processAssistantResponse - throws on null client', async t => {
 		setTokenCount: () => {},
 		setMessages: () => {},
 		addToChatQueue: () => {},
-		componentKeyCounter: 1,
+		getNextComponentKey: () => 1,
 		currentModel: 'test-model',
 		developmentMode: 'normal' as const,
 		nonInteractiveMode: false,
