@@ -1,4 +1,4 @@
-import {ConversationStateManager} from '@/app/utils/conversationState';
+import {ConversationStateManager} from '@/app/utils/conversation-state';
 import UserMessage from '@/components/user-message';
 import {promptHistory} from '@/prompt-history';
 import type {Message} from '@/types/core';

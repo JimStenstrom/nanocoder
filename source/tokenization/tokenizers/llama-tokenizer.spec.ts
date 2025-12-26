@@ -4,6 +4,7 @@
 
 import type {Message} from '@/types/core.js';
 import test from 'ava';
+import llamaTokenizer from 'llama-tokenizer-js';
 import {LlamaTokenizer} from './llama-tokenizer.js';
 
 console.log(`\nllama-tokenizer.spec.ts`);
@@ -191,6 +192,42 @@ test('LlamaTokenizer uses fallback on encoding error', t => {
 	const count = tokenizer.encode('Normal text');
 
 	t.true(count > 0);
+});
+
+test('LlamaTokenizer uses fallback when llamaTokenizer.encode throws', t => {
+	const tokenizer = new LlamaTokenizer('llama-3-8b');
+
+	// Monkey-patch the llamaTokenizer module to throw an error
+	const llamaTokenizerModule = llamaTokenizer as {encode: (text: string) => number[]};
+	const originalEncode = llamaTokenizerModule.encode;
+
+	llamaTokenizerModule.encode = () => {
+		throw new Error('Test encoding error');
+	};
+
+	try {
+		const count = tokenizer.encode('Hello world');
+
+		// Should use fallback: Math.ceil(11 / 4) = 3
+		t.is(count, 3);
+	} finally {
+		// Restore original encode method
+		llamaTokenizerModule.encode = originalEncode;
+	}
+});
+
+test('LlamaTokenizer countTokens handles missing role', t => {
+	const tokenizer = new LlamaTokenizer('llama-3-8b');
+
+	// Create message with missing role (defensive programming case)
+	const message = {
+		content: 'Hello',
+	} as unknown as Message;
+
+	const count = tokenizer.countTokens(message);
+
+	// Should handle gracefully by using empty string for role
+	t.true(count >= 6); // At least overhead + content
 });
 
 test('LlamaTokenizer countTokens with tool message', t => {

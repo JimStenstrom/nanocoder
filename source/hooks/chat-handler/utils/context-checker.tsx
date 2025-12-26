@@ -6,7 +6,9 @@ import {
 import {getModelContextLimit} from '@/models/index';
 import {createTokenizer} from '@/tokenization/index';
 import type {Message} from '@/types/core';
+import type {Tokenizer} from '@/types/tokenization';
 import {calculateTokenBreakdown} from '@/usage/calculator';
+import {getLogger} from '@/utils/logging';
 import type React from 'react';
 
 /**
@@ -28,24 +30,43 @@ export const checkContextUsage = async (
 	addToChatQueue: (component: React.ReactNode) => void,
 	getNextComponentKey: () => number,
 ): Promise<void> => {
-	try {
-		const contextLimit = await getModelContextLimit(currentModel);
-		if (!contextLimit) return; // Unknown limit, skip check
+	const logger = getLogger();
 
-		const tokenizer = createTokenizer(currentProvider, currentModel);
+	// 1. Get context limit
+	let contextLimit: number | null;
+	try {
+		contextLimit = await getModelContextLimit(currentModel);
+	} catch (error) {
+		logger.debug('Failed to get model context limit', {
+			model: currentModel,
+			error,
+		});
+		return;
+	}
+	if (!contextLimit) return;
+
+	// 2. Create tokenizer
+	let tokenizer: Tokenizer | undefined;
+	try {
+		tokenizer = createTokenizer(currentProvider, currentModel);
+	} catch (error) {
+		logger.debug('Failed to create tokenizer', {
+			provider: currentProvider,
+			model: currentModel,
+			error,
+		});
+		return;
+	}
+
+	// 3. Calculate token breakdown and display warnings
+	try {
 		const breakdown = calculateTokenBreakdown(
 			[systemMessage, ...allMessages],
 			tokenizer,
 		);
 
-		// Clean up tokenizer if needed
-		if (tokenizer.free) {
-			tokenizer.free();
-		}
-
 		const percentUsed = (breakdown.total / contextLimit) * 100;
 
-		// Show warning on every message once past threshold
 		if (percentUsed >= TOKEN_THRESHOLD_CRITICAL_PERCENT) {
 			addToChatQueue(
 				<WarningMessage
@@ -67,7 +88,11 @@ export const checkContextUsage = async (
 				/>,
 			);
 		}
-	} catch {
-		// Silently ignore errors in context checking - it's not critical
+	} catch (error) {
+		logger.debug('Failed to calculate token breakdown', {error});
+	} finally {
+		if (tokenizer?.free) {
+			tokenizer.free();
+		}
 	}
 };

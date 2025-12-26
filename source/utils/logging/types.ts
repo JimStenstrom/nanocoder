@@ -135,12 +135,12 @@ export interface TransportConfig {
 /**
  * CLI configuration for logging control
  */
-export interface LoggingCliConfig {
-	logToFile?: boolean;
-	logToConsole?: boolean;
-	noLogFile?: boolean;
-	noLogConsole?: boolean;
-}
+// export interface LoggingCliConfig {
+// 	logToFile?: boolean;
+// 	logToConsole?: boolean;
+// 	noLogFile?: boolean;
+// 	noLogConsole?: boolean;
+// }
 
 /**
  * Environment-specific transport configuration

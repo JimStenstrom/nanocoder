@@ -198,3 +198,17 @@ test('AnthropicTokenizer countTokens with tool message', t => {
 	// Should handle tool messages
 	t.true(count > 0);
 });
+
+test('AnthropicTokenizer countTokens handles missing role', t => {
+	const tokenizer = new AnthropicTokenizer('claude-3-opus');
+
+	// Create message with missing role (defensive programming case)
+	const message = {
+		content: 'Hello',
+	} as unknown as Message;
+
+	const count = tokenizer.countTokens(message);
+
+	// Should handle gracefully by using empty string for role
+	t.true(count >= 3); // At least overhead + content
+});

@@ -4,6 +4,18 @@ A local-first CLI coding agent that brings the power of agentic coding tools lik
 
 ![Example](./.github/assets/example.gif)
 
+---
+![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg)
+![Coverage](https://github.com/Nano-Collective/nanocoder/raw/main/badges/coverage.svg)
+![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/version.svg)
+![NPM Downloads](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-downloads-monthly.svg)
+![NPM License](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-license.svg)
+![Repo Size](https://github.com/Nano-Collective/nanocoder/raw/main/badges/repo-size.svg)
+![Stars](https://github.com/Nano-Collective/nanocoder/raw/main/badges/stars.svg)
+![Forks](https://github.com/Nano-Collective/nanocoder/raw/main/badges/forks.svg)
+![NPM Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-version.svg)
+
+
 ## Table of Contents
 
 - [FAQs](#faqs)

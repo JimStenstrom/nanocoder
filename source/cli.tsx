@@ -1,24 +1,10 @@
 #!/usr/bin/env node
 import App from '@/app';
-import type {LoggingCliConfig} from '@/utils/logging/types';
 import {render} from 'ink';
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
 const vscodeMode = args.includes('--vscode');
-
-// Parse logging control flags
-const logToFile = args.includes('--log-file');
-const logToConsole = args.includes('--log-console');
-const noLogFile = args.includes('--no-log-file');
-const noLogConsole = args.includes('--no-log-console');
-
-const loggingConfig: LoggingCliConfig = {
-	logToFile,
-	logToConsole,
-	noLogFile,
-	noLogConsole,
-};
 
 // Extract VS Code port if specified
 let vscodePort: number | undefined;
@@ -61,6 +47,5 @@ render(
 		vscodePort={vscodePort}
 		nonInteractivePrompt={nonInteractivePrompt}
 		nonInteractiveMode={nonInteractiveMode}
-		loggingConfig={loggingConfig}
 	/>,
 );

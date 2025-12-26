@@ -119,13 +119,13 @@ test('CommandRegistry.getAll - returns all registered commands', t => {
 // Tests for getCompletions()
 // ============================================================================
 
-test('CommandRegistry.getCompletions - returns empty array for empty prefix', t => {
+test('CommandRegistry.getCompletions - returns all commands alphabetically for empty prefix', t => {
 	const registry = new CommandRegistry();
 	registry.register([createTestCommand('help'), createTestCommand('test')]);
 
 	const completions = registry.getCompletions('');
 
-	t.deepEqual(completions, []);
+	t.deepEqual(completions, ['help', 'test']);
 });
 
 test('CommandRegistry.getCompletions - returns exact match', t => {

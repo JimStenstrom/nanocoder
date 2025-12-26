@@ -1,10 +1,11 @@
-import type {ConversationStateManager} from '@/app/utils/conversationState';
+import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import AssistantMessage from '@/components/assistant-message';
 import {ErrorMessage} from '@/components/message-box';
 import UserMessage from '@/components/user-message';
 import {parseToolCalls} from '@/tool-calling/index';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, Message, ToolCall, ToolResult} from '@/types/core';
+import {getLogger} from '@/utils/logging';
 import {MessageBuilder} from '@/utils/message-builder';
 import {parseToolArguments} from '@/utils/tool-args-parser';
 import {displayToolResult} from '@/utils/tool-result-display';
@@ -331,8 +332,12 @@ export const processAssistantResponse = async (
 						if (!validationResult.valid) {
 							validationFailed = true;
 						}
-					} catch {
-						// Validation threw an error - treat as validation failure
+					} catch (error) {
+						const logger = getLogger();
+						logger.debug('Tool validation threw error', {
+							toolName: toolCall.function.name,
+							error,
+						});
 						validationFailed = true;
 					}
 				}
@@ -366,8 +371,15 @@ export const processAssistantResponse = async (
 									args: unknown,
 								) => boolean | Promise<boolean>
 							)(parsedArgs);
-						} catch {
-							// If evaluation fails, require approval for safety
+						} catch (error) {
+							const logger = getLogger();
+							logger.debug(
+								'needsApproval evaluation failed, requiring approval',
+								{
+									toolName: toolCall.function.name,
+									error,
+								},
+							);
 							toolNeedsApproval = true;
 						}
 					}

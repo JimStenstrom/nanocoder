@@ -429,6 +429,20 @@ test('session tracking across provider/model changes', async t => {
 	t.is(session.model, 'claude-3-opus');
 });
 
+test('getCurrentStats handles unknown model with no context limit', async t => {
+	const tracker = new SessionTracker('unknown-provider', 'unknown-model-that-does-not-exist');
+	const tokenizer = new MockTokenizer();
+	const messages = createMockMessages();
+
+	const stats = await tracker.getCurrentStats(messages, tokenizer);
+
+	// When context limit is not found, percentUsed should be 0
+	t.is(stats.percentUsed, 0);
+	t.is(stats.provider, 'unknown-provider');
+	t.is(stats.model, 'unknown-model-that-does-not-exist');
+	t.is(stats.messageCount, 3);
+});
+
 test('multiple sessions tracked correctly', t => {
 	const tokenizer = new MockTokenizer();
 	const messages = createMockMessages();

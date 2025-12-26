@@ -124,6 +124,53 @@ test.serial('fetchModels filters out non-coding models', async t => {
 	}
 });
 
+test.serial('fetchModels filters out models with image/audio keywords in ID', async t => {
+	clearModelCache();
+
+	const originalFetch = globalThis.fetch;
+	globalThis.fetch = async () => {
+		return {
+			ok: true,
+			json: async () =>
+				createMockOpenRouterResponse([
+					{
+						id: 'openai/gpt-4',
+						name: 'GPT-4',
+						supported_parameters: ['tools'],
+					},
+					{
+						// Model with whisper in ID but supports text in/out (edge case for lines 130-131)
+						id: 'company/whisper-large-v3',
+						name: 'Whisper Large',
+						supported_parameters: ['tools'],
+						architecture: {
+							input_modalities: ['text'],
+							output_modalities: ['text'],
+						},
+					},
+					{
+						// Model with tts in ID but supports text in/out
+						id: 'company/tts-model',
+						name: 'TTS Model',
+						supported_parameters: [],
+					},
+				]),
+		} as Response;
+	};
+
+	try {
+		const models = await fetchModels();
+		// Should include GPT-4 but not whisper or tts models
+		const modelIds = models.map(m => m.id);
+		t.true(modelIds.includes('openai/gpt-4'));
+		t.false(modelIds.includes('company/whisper-large-v3'));
+		t.false(modelIds.includes('company/tts-model'));
+	} finally {
+		globalThis.fetch = originalFetch;
+		clearModelCache();
+	}
+});
+
 test.serial('fetchModels identifies open weight models correctly', async t => {
 	clearModelCache();
 

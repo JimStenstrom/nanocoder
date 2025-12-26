@@ -383,3 +383,41 @@ test('checkForUpdates: complete workflow for network failure', async t => {
 	t.is(result.latestVersion, undefined);
 	t.is(result.updateCommand, undefined);
 });
+
+// Tests for uncovered error paths
+
+test('checkForUpdates: returns generic message for unknown installation method', async t => {
+	// Tests lines 156-157: default case in getUpdateDetails
+	globalThis.fetch = createMockFetch(200, {
+		version: '2.0.0',
+		name: '@nanocollective/nanocoder',
+	});
+
+	// Set to 'unknown' - a valid installation method that triggers the generic message
+	// 'unknown' is a valid value in the InstallationMethod type
+	process.env.NANOCODER_INSTALL_METHOD = 'unknown';
+
+	const result = await checkForUpdates();
+
+	t.true(result.hasUpdate);
+	t.is(result.updateCommand, undefined);
+	// Should return the generic unknown message
+	t.is(
+		result.updateMessage,
+		'A new version is available. Please update using your package manager.',
+	);
+});
+
+test('checkForUpdates: handles general errors in main function', async t => {
+	// Tests lines 171-181: catch block in checkForUpdates
+	// Make fetch throw a non-network error to hit the catch block
+	globalThis.fetch = (async () => {
+		throw new Error('Unexpected error during fetch');
+	}) as typeof fetch;
+
+	const result = await checkForUpdates();
+
+	// Should handle error gracefully
+	t.false(result.hasUpdate);
+	t.truthy(result.currentVersion);
+});

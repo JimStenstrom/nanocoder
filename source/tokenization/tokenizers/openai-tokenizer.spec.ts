@@ -182,3 +182,40 @@ test('OpenAITokenizer handles long messages', t => {
 	// Should handle long text without crashing
 	t.true(count > 1000);
 });
+
+test('OpenAITokenizer uses fallback when encoding.encode throws', t => {
+	const tokenizer = new OpenAITokenizer('gpt-4');
+
+	// Access the private encoding field and override encode to throw
+	const encoding = (tokenizer as unknown as {encoding: {encode: () => number[]}}).encoding;
+	const originalEncode = encoding.encode;
+
+	// Make encode throw an error
+	encoding.encode = () => {
+		throw new Error('Test encoding error');
+	};
+
+	try {
+		const count = tokenizer.encode('Hello world');
+
+		// Should use fallback: Math.ceil(11 / 4) = 3
+		t.is(count, 3);
+	} finally {
+		// Restore original encode method
+		encoding.encode = originalEncode;
+	}
+});
+
+test('OpenAITokenizer countTokens handles missing role', t => {
+	const tokenizer = new OpenAITokenizer('gpt-4');
+
+	// Create message with missing role (defensive programming case)
+	const message = {
+		content: 'Hello',
+	} as unknown as Message;
+
+	const count = tokenizer.countTokens(message);
+
+	// Should handle gracefully by using empty string for role
+	t.true(count >= 4); // At least overhead + content
+});

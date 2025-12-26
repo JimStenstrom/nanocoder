@@ -5,7 +5,6 @@ test('App types are properly exported', t => {
 	const props: AppProps = {
 		vscodeMode: false,
 		nonInteractiveMode: false,
-		loggingConfig: {},
 	};
 
 	t.truthy(props);
@@ -20,7 +19,6 @@ test('AppProps accepts all optional parameters', t => {
 		vscodePort: 3000,
 		nonInteractivePrompt: 'test prompt',
 		nonInteractiveMode: true,
-		loggingConfig: {level: 'info'},
 	};
 
 	t.truthy(minimalProps);

@@ -31,23 +31,29 @@ export function getClosestConfigFile(fileName: string): string {
 	try {
 		const configDir = getConfigPath();
 
-		// First, lets check for a working directory config
-		const cwdPath = join(process.cwd(), fileName); // nosemgrep
-		if (existsSync(cwdPath)) {
-			// nosemgrep
-			confDirMap[fileName] = cwdPath; // nosemgrep
+		// If NANOCODER_CONFIG_DIR is explicitly set, skip cwd and home checks
+		// and use only the config directory (important for tests and explicit overrides)
+		const isExplicitConfigDir = Boolean(process.env.NANOCODER_CONFIG_DIR);
 
-			return cwdPath; // nosemgrep
-		}
+		if (!isExplicitConfigDir) {
+			// First, lets check for a working directory config
+			const cwdPath = join(process.cwd(), fileName); // nosemgrep
+			if (existsSync(cwdPath)) {
+				// nosemgrep
+				confDirMap[fileName] = cwdPath; // nosemgrep
 
-		// Next lets check the $HOME for a hidden file. This should only be for
-		// legacy support
-		const homePath = join(homedir(), `.${fileName}`); // nosemgrep
-		if (existsSync(homePath)) {
-			// nosemgrep
-			confDirMap[fileName] = homePath; // nosemgrep
+				return cwdPath; // nosemgrep
+			}
 
-			return homePath; // nosemgrep
+			// Next lets check the $HOME for a hidden file. This should only be for
+			// legacy support
+			const homePath = join(homedir(), `.${fileName}`); // nosemgrep
+			if (existsSync(homePath)) {
+				// nosemgrep
+				confDirMap[fileName] = homePath; // nosemgrep
+
+				return homePath; // nosemgrep
+			}
 		}
 
 		// Last, lets look for an user level config.

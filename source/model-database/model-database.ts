@@ -1,4 +1,5 @@
 import {ModelEntry} from '@/types/index';
+import {getLogger} from '@/utils/logging';
 import {clearModelCache, fetchModels, isModelsCached} from './model-fetcher';
 
 export class ModelDatabase {
@@ -71,8 +72,9 @@ export class ModelDatabase {
 		this.fetchPromise = fetchModels();
 		try {
 			this.cachedModels = await this.fetchPromise;
-		} catch {
-			// Silently fail - models will be empty
+		} catch (error) {
+			const logger = getLogger();
+			logger.debug('Failed to fetch models', {error});
 		} finally {
 			this.fetchPromise = null;
 		}

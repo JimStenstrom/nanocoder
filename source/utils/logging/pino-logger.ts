@@ -6,20 +6,13 @@ import {existsSync, mkdirSync} from 'fs';
 import {join} from 'path';
 import pino, {type Logger as PinoLogger} from 'pino';
 import {createConfig, getDefaultLogDirectory} from './config.js';
-import {
-	formatCorrelationForLog,
-	getCurrentCorrelationContext,
-	isCorrelationEnabled,
-} from './correlation.js';
 import {createLogMethods} from './log-method-factory.js';
 import {createRedactionRules, redactLogEntry} from './redaction.js';
 import type {
-	ConsoleArguments,
 	EnvironmentTransportConfig,
 	LogLevel,
 	Logger,
 	LoggerConfig,
-	LoggingCliConfig,
 	PiiRedactionRules,
 	PinoTransportOptions,
 } from './types.js';
@@ -39,16 +32,9 @@ function isPromise<T>(value: T | Promise<T> | void): value is Promise<T> {
 
 /**
  * Determine transport configuration based on environment and CLI settings
+ * Currently returns a fixed configuration for all environments (file logging only)
  */
-function determineTransportConfig(
-	_isProduction: boolean,
-	_isDevelopment: boolean,
-	_isTest: boolean,
-	_cliConfig?: LoggingCliConfig,
-): EnvironmentTransportConfig {
-	const _envLogFile = process.env.NANOCODER_LOG_TO_FILE === 'true';
-	const _envLogConsole = process.env.NANOCODER_LOG_TO_CONSOLE === 'true';
-
+function determineTransportConfig(): EnvironmentTransportConfig {
 	// All environments: file only, no console - simplified approach
 	return {
 		enableFile: true, // Always enable file logging
@@ -106,42 +92,11 @@ function createEnvironmentLogger(
 		return createEnhancedLogger(pinoLogger, undefined, redactionRules);
 	}
 
-	// Silent fallback (should not reach here with new config)
-	return createSilentLogger();
-}
-
-/**
- * Factory function to create log method with specific level for Pino
- * Uses the shared factory with custom transform logic for redaction and correlation
- * @deprecated Use createLogMethods factory instead
- */
-function _createPinoLogMethod(
-	logger: PinoLogger,
-	level: string,
-	redactionRules?: PiiRedactionRules,
-) {
-	// Create overloaded function using the shared factory pattern
-	const logMethod = (msgOrObj: string | object, ...args: unknown[]) => {
-		if (typeof msgOrObj === 'object' && msgOrObj !== null) {
-			// Object first: (obj: object, msg?: string) => void
-			const obj = msgOrObj as Record<string, unknown>;
-			const msg = args[0] as string | undefined;
-			logWithContext(logger, level, msg || '', [obj], redactionRules);
-		} else {
-			// String first: (msg: string, ...args: unknown[]) => void
-			const msg = msgOrObj;
-			logWithContext(
-				logger,
-				level,
-				msg,
-				args as ConsoleArguments,
-				redactionRules,
-			);
-		}
-	};
-
-	return logMethod as ((msg: string, ...args: unknown[]) => void) &
-		((obj: object, msg?: string) => void);
+	// This should never be reached with current configuration
+	// If we get here, it means determineTransportConfig returned an invalid config
+	throw new Error(
+		'Invalid transport configuration: enableFile must be true and enableConsole must be false',
+	);
 }
 
 /**
@@ -297,131 +252,13 @@ function createEnhancedChild(
 }
 
 /**
- * Create a silent logger that does nothing
- */
-function createSilentLogger(): Logger {
-	return {
-		fatal: () => {},
-		error: () => {},
-		warn: () => {},
-		info: () => {},
-		http: () => {},
-		debug: () => {},
-		trace: () => {},
-		child: () => createSilentLogger(),
-		isLevelEnabled: () => false,
-		flush: async () => {},
-		end: async () => {},
-	};
-}
-
-/**
- * Log message with correlation context and redaction
- */
-function logWithContext(
-	logger: PinoLogger,
-	level: string,
-	msg: string,
-	args: ConsoleArguments,
-	redactionRules?: PiiRedactionRules,
-): void {
-	// Prepare log data
-	let logData: Record<string, unknown> = {msg};
-
-	// Add correlation context if enabled
-	if (isCorrelationEnabled()) {
-		const correlationContext = getCurrentCorrelationContext();
-		if (correlationContext) {
-			logData = {
-				...logData,
-				...formatCorrelationForLog(),
-			};
-
-			// Add correlation metadata if available
-			const metadata = correlationContext.metadata;
-			if (metadata) {
-				logData = {...logData, correlation: metadata};
-			}
-		}
-	}
-
-	// Handle additional arguments
-	if (args.length > 0) {
-		if (args.length === 1 && typeof args[0] === 'object') {
-			// Merge object with log data
-			logData = {...logData, ...args[0]};
-		} else {
-			// Add args as extra field
-			logData.extra = args;
-		}
-	}
-
-	// Apply redaction
-	if (redactionRules) {
-		logData = redactLogEntry(logData, redactionRules);
-	}
-
-	// Log to the transport
-	switch (level) {
-		case 'fatal':
-			logger.fatal(logData);
-			break;
-		case 'error':
-			logger.error(logData);
-			break;
-		case 'warn':
-			logger.warn(logData);
-			break;
-		case 'info':
-			logger.info(logData);
-			break;
-		case 'http':
-			if ('http' in logger) {
-				(logger as {http?: (data: Record<string, unknown>) => void}).http?.(
-					logData,
-				);
-			}
-			break;
-		case 'debug':
-			logger.debug(logData);
-			break;
-		case 'trace':
-			logger.trace(logData);
-			break;
-		default:
-			logger.info(logData);
-			break;
-	}
-}
-
-/**
  * Create a Pino logger with environment-specific transports and CLI configuration
  */
-export function createPinoLogger(
-	config?: Partial<LoggerConfig>,
-	cliConfig?: LoggingCliConfig,
-): Logger {
+export function createPinoLogger(config?: Partial<LoggerConfig>): Logger {
 	const finalConfig = createConfig(config);
-	// For CLI tools, treat unset NODE_ENV as production (not development)
-	// Developers should explicitly set NODE_ENV=development to see debug logs
-	const isDevelopment = process.env.NODE_ENV === 'development';
-	const isTest = process.env.NODE_ENV === 'test';
-	const isProduction = !isDevelopment && !isTest;
 
 	// Determine transport configuration
-	const transportConfig = determineTransportConfig(
-		isProduction,
-		isDevelopment,
-		isTest,
-		cliConfig,
-	);
-
-	// Create redaction rules
-	const _redactionRules = createRedactionRules(
-		finalConfig.redact,
-		isProduction, // Enable email redaction in production
-		isProduction, // Enable user ID redaction in production
-	);
+	const transportConfig = determineTransportConfig();
 
 	// Base Pino configuration with updated fields
 	const baseConfig: pino.LoggerOptions = {

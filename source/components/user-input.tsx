@@ -44,10 +44,6 @@ export default function UserInput({
 	const {boxWidth, isNarrow} = useResponsiveTerminal();
 	const [textInputKey, setTextInputKey] = useState(0);
 	// Store the original InputState (including placeholders) when starting history navigation
-	const [originalInputState, setOriginalInputState] = useState<
-		typeof inputState.currentState | null
-	>(null);
-
 	// File autocomplete state
 	const [isFileAutocompleteMode, setIsFileAutocompleteMode] = useState(false);
 	const [fileCompletions, setFileCompletions] = useState<
@@ -63,7 +59,6 @@ export default function UserInput({
 
 	const {
 		input,
-		originalInput,
 		historyIndex,
 		setOriginalInput,
 		setHistoryIndex,
@@ -126,14 +121,15 @@ export default function UserInput({
 		}
 
 		const commandPrefix = input.slice(1).split(' ')[0];
-		if (commandPrefix.length === 0) {
-			return [];
-		}
 
 		const builtInCompletions = commandRegistry.getCompletions(commandPrefix);
 		const customCompletions = customCommands
 			.filter(cmd => {
-				return cmd.toLowerCase().includes(commandPrefix.toLowerCase());
+				// Include all when no prefix, otherwise filter by prefix
+				return (
+					!commandPrefix ||
+					cmd.toLowerCase().includes(commandPrefix.toLowerCase())
+				);
 			})
 			.sort((a, b) => a.localeCompare(b));
 
@@ -238,7 +234,6 @@ export default function UserInput({
 			if (direction === 'up') {
 				if (historyIndex === -1) {
 					// Save the full current state (including placeholders) before starting navigation
-					setOriginalInputState(currentState);
 					setOriginalInput(input);
 					setHistoryIndex(history.length - 1);
 					setInputState(history[history.length - 1]);
@@ -248,40 +243,42 @@ export default function UserInput({
 					setHistoryIndex(newIndex);
 					setInputState(history[newIndex]);
 					setTextInputKey(prev => prev + 1);
-				} else {
-					// Clear when going past the first history item
+				} else if (historyIndex === 0) {
+					// At first history item, go to blank
 					setHistoryIndex(-2);
 					setOriginalInput('');
 					updateInput('');
 					setTextInputKey(prev => prev + 1);
+				} else if (historyIndex === -2) {
+					// At blank, cycle back to last history item
+					setHistoryIndex(history.length - 1);
+					setInputState(history[history.length - 1]);
+					setTextInputKey(prev => prev + 1);
 				}
 			} else {
-				if (historyIndex >= 0 && historyIndex < history.length - 1) {
+				if (historyIndex === -1) {
+					// At original input, go to blank when cycling down
+					setOriginalInput(input);
+					setHistoryIndex(-2);
+					setOriginalInput('');
+					updateInput('');
+					setTextInputKey(prev => prev + 1);
+				} else if (historyIndex === -2) {
+					// At blank, cycle to first history item
+					setHistoryIndex(0);
+					setInputState(history[0]);
+					setTextInputKey(prev => prev + 1);
+				} else if (historyIndex >= 0 && historyIndex < history.length - 1) {
+					// Move forward in history
 					const newIndex = historyIndex + 1;
 					setHistoryIndex(newIndex);
 					setInputState(history[newIndex]);
 					setTextInputKey(prev => prev + 1);
 				} else if (historyIndex === history.length - 1) {
-					// Restore the full original state (including placeholders)
-					setHistoryIndex(-1);
-					if (originalInputState) {
-						setInputState(originalInputState);
-						setOriginalInputState(null);
-					} else {
-						updateInput(originalInput);
-					}
+					// At last history item, cycle back to blank
+					setHistoryIndex(-2);
 					setOriginalInput('');
-					setTextInputKey(prev => prev + 1);
-				} else if (historyIndex === -2) {
-					// Restore the original input state when pressing down from the empty state
-					setHistoryIndex(-1);
-					if (originalInputState) {
-						setInputState(originalInputState);
-						setOriginalInputState(null);
-					} else {
-						updateInput(originalInput);
-					}
-					setOriginalInput('');
+					updateInput('');
 					setTextInputKey(prev => prev + 1);
 				}
 			}
@@ -289,9 +286,6 @@ export default function UserInput({
 		[
 			historyIndex,
 			input,
-			originalInput,
-			currentState,
-			originalInputState,
 			setHistoryIndex,
 			setOriginalInput,
 			setInputState,

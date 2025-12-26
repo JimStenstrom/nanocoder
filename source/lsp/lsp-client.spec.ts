@@ -1,6 +1,8 @@
 import {EventEmitter} from 'events';
+import {Writable} from 'stream';
 import test from 'ava';
 import {LSPClient, type LSPServerConfig} from './lsp-client';
+import type {Diagnostic} from './protocol';
 
 console.log(`\nlsp-client.spec.ts`);
 
@@ -505,4 +507,607 @@ test('LSPClient - openDocument with unicode content', t => {
 	t.notThrows(() => {
 		client.openDocument('file:///test.ts', 'typescript', content);
 	});
+});
+
+// Private method testing via message handling
+test('LSPClient - handleData parses complete message', t => {
+	const client = new LSPClient(createMockConfig());
+	const mockResponse = {jsonrpc: '2.0', id: 1, result: {test: true}};
+	const content = JSON.stringify(mockResponse);
+	const message = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n${content}`;
+
+	// Access private method through type assertion for testing
+	const handleData = (client as any).handleData.bind(client);
+
+	let messageHandled = false;
+	const originalHandleMessage = (client as any).handleMessage;
+	(client as any).handleMessage = (msg: any) => {
+		messageHandled = true;
+		t.deepEqual(msg, mockResponse);
+		originalHandleMessage.call(client, msg);
+	};
+
+	t.notThrows(() => {
+		handleData(message);
+	});
+
+	t.true(messageHandled);
+});
+
+test('LSPClient - handleData handles partial messages', t => {
+	const client = new LSPClient(createMockConfig());
+	const mockResponse = {jsonrpc: '2.0', id: 1, result: {test: true}};
+	const content = JSON.stringify(mockResponse);
+	const fullMessage = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n${content}`;
+
+	// Split message in half
+	const part1 = fullMessage.substring(0, fullMessage.length / 2);
+	const part2 = fullMessage.substring(fullMessage.length / 2);
+
+	const handleData = (client as any).handleData.bind(client);
+
+	let messageHandled = false;
+	(client as any).handleMessage = () => {
+		messageHandled = true;
+	};
+
+	// First part shouldn't trigger handling
+	handleData(part1);
+	t.false(messageHandled);
+
+	// Second part should complete the message
+	handleData(part2);
+	t.true(messageHandled);
+});
+
+test('LSPClient - handleData handles multiple messages in one chunk', t => {
+	const client = new LSPClient(createMockConfig());
+	const msg1 = {jsonrpc: '2.0', id: 1, result: {first: true}};
+	const msg2 = {jsonrpc: '2.0', id: 2, result: {second: true}};
+
+	const content1 = JSON.stringify(msg1);
+	const content2 = JSON.stringify(msg2);
+
+	const message =
+		`Content-Length: ${Buffer.byteLength(content1)}\r\n\r\n${content1}` +
+		`Content-Length: ${Buffer.byteLength(content2)}\r\n\r\n${content2}`;
+
+	const handleData = (client as any).handleData.bind(client);
+
+	const handledMessages: any[] = [];
+	(client as any).handleMessage = (msg: any) => {
+		handledMessages.push(msg);
+	};
+
+	handleData(message);
+
+	t.is(handledMessages.length, 2);
+	t.deepEqual(handledMessages[0], msg1);
+	t.deepEqual(handledMessages[1], msg2);
+});
+
+test('LSPClient - handleData skips invalid headers', t => {
+	const client = new LSPClient(createMockConfig());
+	const invalidMessage = 'Invalid-Header: test\r\n\r\n{"test": true}';
+
+	const handleData = (client as any).handleData.bind(client);
+
+	t.notThrows(() => {
+		handleData(invalidMessage);
+	});
+});
+
+test('LSPClient - handleData ignores malformed JSON', t => {
+	const client = new LSPClient(createMockConfig());
+	const malformedContent = '{invalid json}';
+	const message = `Content-Length: ${Buffer.byteLength(malformedContent)}\r\n\r\n${malformedContent}`;
+
+	const handleData = (client as any).handleData.bind(client);
+
+	t.notThrows(() => {
+		handleData(message);
+	});
+});
+
+test('LSPClient - handleMessage resolves pending request on success', async t => {
+	const client = new LSPClient(createMockConfig());
+	const requestId = 1;
+	const expectedResult = {capabilities: {}};
+
+	// Setup a pending request
+	const promise = new Promise((resolve, reject) => {
+		(client as any).pendingRequests.set(requestId, {
+			resolve,
+			reject,
+			method: 'test',
+		});
+	});
+
+	const response = {jsonrpc: '2.0', id: requestId, result: expectedResult};
+	const handleMessage = (client as any).handleMessage.bind(client);
+
+	handleMessage(response);
+
+	const result = await promise;
+	t.deepEqual(result, expectedResult);
+	t.false((client as any).pendingRequests.has(requestId));
+});
+
+test('LSPClient - handleMessage rejects pending request on error', async t => {
+	const client = new LSPClient(createMockConfig());
+	const requestId = 1;
+	const errorMessage = 'Method not found';
+
+	const promise = new Promise((resolve, reject) => {
+		(client as any).pendingRequests.set(requestId, {
+			resolve,
+			reject,
+			method: 'test',
+		});
+	});
+
+	const response = {
+		jsonrpc: '2.0',
+		id: requestId,
+		error: {code: -32601, message: errorMessage},
+	};
+	const handleMessage = (client as any).handleMessage.bind(client);
+
+	handleMessage(response);
+
+	await t.throwsAsync(async () => promise, {message: errorMessage});
+	t.false((client as any).pendingRequests.has(requestId));
+});
+
+test('LSPClient - handleMessage emits diagnostics notification', t => {
+	const client = new LSPClient(createMockConfig());
+
+	const diagnosticsParams = {
+		uri: 'file:///test.ts',
+		diagnostics: [
+			{
+				range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}},
+				message: 'Error',
+				severity: 1,
+			},
+		],
+	};
+
+	let receivedParams: any = null;
+	client.on('diagnostics', params => {
+		receivedParams = params;
+	});
+
+	const notification = {
+		jsonrpc: '2.0',
+		method: 'textDocument/publishDiagnostics',
+		params: diagnosticsParams,
+	};
+
+	const handleMessage = (client as any).handleMessage.bind(client);
+	handleMessage(notification);
+
+	t.deepEqual(receivedParams, diagnosticsParams);
+});
+
+test('LSPClient - handleMessage ignores unknown notifications', t => {
+	const client = new LSPClient(createMockConfig());
+
+	const notification = {
+		jsonrpc: '2.0',
+		method: 'unknown/method',
+		params: {},
+	};
+
+	const handleMessage = (client as any).handleMessage.bind(client);
+
+	t.notThrows(() => {
+		handleMessage(notification);
+	});
+});
+
+test('LSPClient - send formats message correctly', t => {
+	const client = new LSPClient(createMockConfig());
+
+	// Mock stdin
+	const mockStdin = new Writable({
+		write(chunk: any, _encoding: any, callback: any) {
+			const message = chunk.toString();
+			t.true(message.includes('Content-Length:'));
+			t.true(message.includes('\r\n\r\n'));
+			t.true(message.includes('"jsonrpc":"2.0"'));
+			callback();
+		},
+	});
+
+	(client as any).process = {stdin: mockStdin};
+
+	const request = {
+		jsonrpc: '2.0',
+		id: 1,
+		method: 'test',
+		params: {},
+	};
+
+	const send = (client as any).send.bind(client);
+	send(request);
+});
+
+test('LSPClient - sendNotification does not send when not connected', t => {
+	const client = new LSPClient(createMockConfig());
+
+	t.notThrows(() => {
+		(client as any).sendNotification('test/method', {});
+	});
+});
+
+test('LSPClient - sendNotification sends when connected', t => {
+	const client = new LSPClient(createMockConfig());
+
+	let written = false;
+	const mockStdin = new Writable({
+		write(_chunk: any, _encoding: any, callback: any) {
+			written = true;
+			callback();
+		},
+	});
+
+	(client as any).process = {stdin: mockStdin};
+
+	(client as any).sendNotification('test/method', {param: 'value'});
+
+	t.true(written);
+});
+
+test('LSPClient - sendRequest rejects when not connected', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	const error = await t.throwsAsync(
+		async () => {
+			await (client as any).sendRequest('test/method', {});
+		},
+		{message: 'LSP process not running'},
+	);
+
+	t.truthy(error);
+});
+
+test('LSPClient - sendRequest times out after 30 seconds', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	const mockStdin = new Writable({
+		write(_chunk: any, _encoding: any, callback: any) {
+			callback();
+		},
+	});
+
+	(client as any).process = {stdin: mockStdin};
+
+	// Speed up the test by mocking setTimeout
+	const originalSetTimeout = global.setTimeout;
+	global.setTimeout = ((callback: any) => {
+		callback();
+		return 0 as any;
+	}) as any;
+
+	const error = await t.throwsAsync(
+		async () => {
+			await (client as any).sendRequest('test/method', {});
+		},
+		{message: /LSP request timeout: test\/method/},
+	);
+
+	global.setTimeout = originalSetTimeout;
+	t.truthy(error);
+});
+
+// Test with mock capabilities
+test('LSPClient - getCompletions with capabilities returns array result', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	// Set capabilities
+	(client as any).serverCapabilities = {
+		completionProvider: {},
+	};
+
+	// Mock sendRequest
+	const items = [{label: 'test', kind: 1}];
+	(client as any).sendRequest = async () => items;
+
+	const result = await client.getCompletions('file:///test.ts', {
+		line: 0,
+		character: 0,
+	});
+
+	t.deepEqual(result, items);
+});
+
+test('LSPClient - getCompletions with capabilities returns CompletionList', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		completionProvider: {},
+	};
+
+	const items = [{label: 'test', kind: 1}];
+	(client as any).sendRequest = async () => ({
+		isIncomplete: false,
+		items,
+	});
+
+	const result = await client.getCompletions('file:///test.ts', {
+		line: 0,
+		character: 0,
+	});
+
+	t.deepEqual(result, items);
+});
+
+test('LSPClient - getCompletions with capabilities handles null result', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		completionProvider: {},
+	};
+
+	(client as any).sendRequest = async () => null;
+
+	const result = await client.getCompletions('file:///test.ts', {
+		line: 0,
+		character: 0,
+	});
+
+	t.deepEqual(result, []);
+});
+
+test('LSPClient - getCodeActions with capabilities returns results', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		codeActionProvider: true,
+	};
+
+	const actions = [{title: 'Fix', kind: 'quickfix'}];
+	(client as any).sendRequest = async () => actions;
+
+	const result = await client.getCodeActions(
+		'file:///test.ts',
+		[],
+		0,
+		0,
+		1,
+		10,
+	);
+
+	t.deepEqual(result, actions);
+});
+
+test('LSPClient - getCodeActions with capabilities handles null result', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		codeActionProvider: true,
+	};
+
+	(client as any).sendRequest = async () => null;
+
+	const result = await client.getCodeActions(
+		'file:///test.ts',
+		[],
+		0,
+		0,
+		1,
+		10,
+	);
+
+	t.deepEqual(result, []);
+});
+
+test('LSPClient - formatDocument with capabilities returns results', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		documentFormattingProvider: true,
+	};
+
+	const edits = [
+		{
+			range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}},
+			newText: 'formatted',
+		},
+	];
+	(client as any).sendRequest = async () => edits;
+
+	const result = await client.formatDocument('file:///test.ts');
+
+	t.deepEqual(result, edits);
+});
+
+test('LSPClient - formatDocument with capabilities handles null result', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		documentFormattingProvider: true,
+	};
+
+	(client as any).sendRequest = async () => null;
+
+	const result = await client.formatDocument('file:///test.ts');
+
+	t.deepEqual(result, []);
+});
+
+test('LSPClient - getDiagnostics with capabilities returns results', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		diagnosticProvider: {},
+	};
+
+	const diagnostics: Diagnostic[] = [
+		{
+			range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}},
+			message: 'Error',
+			severity: 1,
+		},
+	];
+	(client as any).sendRequest = async () => ({items: diagnostics});
+
+	const result = await client.getDiagnostics('file:///test.ts');
+
+	t.deepEqual(result, diagnostics);
+});
+
+test('LSPClient - getDiagnostics with capabilities handles null result', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		diagnosticProvider: {},
+	};
+
+	(client as any).sendRequest = async () => null;
+
+	const result = await client.getDiagnostics('file:///test.ts');
+
+	t.deepEqual(result, []);
+});
+
+test('LSPClient - getDiagnostics with capabilities handles errors', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	(client as any).serverCapabilities = {
+		diagnosticProvider: {},
+	};
+
+	(client as any).sendRequest = async () => {
+		throw new Error('Not supported');
+	};
+
+	const result = await client.getDiagnostics('file:///test.ts');
+
+	t.deepEqual(result, []);
+});
+
+// Additional edge cases
+test('LSPClient - handleMessage ignores response with non-existent request ID', t => {
+	const client = new LSPClient(createMockConfig());
+
+	const response = {
+		jsonrpc: '2.0',
+		id: 999,
+		result: {test: true},
+	};
+
+	const handleMessage = (client as any).handleMessage.bind(client);
+
+	t.notThrows(() => {
+		handleMessage(response);
+	});
+});
+
+test('LSPClient - handleData processes incremental buffer data', t => {
+	const client = new LSPClient(createMockConfig());
+	const msg = {jsonrpc: '2.0', id: 1, result: {test: true}};
+	const content = JSON.stringify(msg);
+	const fullMessage = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n${content}`;
+
+	const handleData = (client as any).handleData.bind(client);
+
+	let messageHandled = false;
+	(client as any).handleMessage = () => {
+		messageHandled = true;
+	};
+
+	// Send one character at a time
+	for (const char of fullMessage) {
+		handleData(char);
+	}
+
+	t.true(messageHandled);
+});
+
+test('LSPClient - openDocument increments version number', t => {
+	const client = new LSPClient(createMockConfig());
+
+	client.openDocument('file:///test.ts', 'typescript', 'v1');
+
+	// Check that version was stored
+	const version = (client as any).openDocuments.get('file:///test.ts');
+	t.is(version, 1);
+});
+
+test('LSPClient - updateDocument increments version number', t => {
+	const client = new LSPClient(createMockConfig());
+
+	// First open
+	client.openDocument('file:///test.ts', 'typescript', 'v1');
+	const version1 = (client as any).openDocuments.get('file:///test.ts');
+
+	// Then update
+	client.updateDocument('file:///test.ts', 'v2');
+	const version2 = (client as any).openDocuments.get('file:///test.ts');
+
+	t.is(version1, 1);
+	t.is(version2, 2);
+});
+
+test('LSPClient - closeDocument removes from tracking', t => {
+	const client = new LSPClient(createMockConfig());
+
+	client.openDocument('file:///test.ts', 'typescript', 'content');
+	t.true((client as any).openDocuments.has('file:///test.ts'));
+
+	client.closeDocument('file:///test.ts');
+	t.false((client as any).openDocuments.has('file:///test.ts'));
+});
+
+test('LSPClient - updateDocument without prior open starts at version 1', t => {
+	const client = new LSPClient(createMockConfig());
+
+	client.updateDocument('file:///test.ts', 'content');
+
+	const version = (client as any).openDocuments.get('file:///test.ts');
+	t.is(version, 1);
+});
+
+test('LSPClient - sendRequest increments request ID', async t => {
+	const client = new LSPClient(createMockConfig());
+
+	const mockStdin = new Writable({
+		write(_chunk: any, _encoding: any, callback: any) {
+			callback();
+		},
+	});
+
+	(client as any).process = {stdin: mockStdin};
+
+	// Mock setTimeout to make requests fail immediately
+	const originalSetTimeout = global.setTimeout;
+	global.setTimeout = ((callback: any) => {
+		callback();
+		return 0 as any;
+	}) as any;
+
+	const id1 = (client as any).requestId;
+
+	try {
+		await (client as any).sendRequest('method1', {});
+	} catch {
+		// Expected to timeout
+	}
+
+	const id2 = (client as any).requestId;
+
+	try {
+		await (client as any).sendRequest('method2', {});
+	} catch {
+		// Expected to timeout
+	}
+
+	const id3 = (client as any).requestId;
+
+	global.setTimeout = originalSetTimeout;
+
+	t.true(id2 > id1);
+	t.true(id3 > id2);
 });

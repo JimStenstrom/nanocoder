@@ -1,6 +1,6 @@
 import test from 'ava';
 import type {AIProviderConfig} from '@/types/index';
-import {AISDKClient} from './AISDKClient.js';
+import {AISDKClient} from './ai-sdk-client.js';
 
 test('AISDKClient constructor initializes with config', t => {
 	const config: AIProviderConfig = {

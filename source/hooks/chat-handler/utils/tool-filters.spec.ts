@@ -26,6 +26,33 @@ test('filterValidToolCalls - filters out empty tool calls', t => {
 	t.is(errorResults.length, 0);
 });
 
+test('filterValidToolCalls - filters out whitespace-only tool names', t => {
+	const toolCalls: ToolCall[] = [
+		{
+			id: 'call_1',
+			function: {name: '   ', arguments: {}}, // Only whitespace
+		},
+		{
+			id: 'call_2',
+			function: {name: '\t\n', arguments: {}}, // Tab and newline
+		},
+		{
+			id: 'call_3',
+			function: {name: '  \t  \n  ', arguments: {}}, // Mixed whitespace
+		},
+		{
+			id: 'call_4',
+			function: {name: 'valid_tool', arguments: {}},
+		},
+	];
+
+	const {validToolCalls, errorResults} = filterValidToolCalls(toolCalls, null);
+
+	t.is(validToolCalls.length, 1);
+	t.is(validToolCalls[0].id, 'call_4');
+	t.is(errorResults.length, 0);
+});
+
 test('filterValidToolCalls - creates error for non-existent tools', t => {
 	const toolCalls: ToolCall[] = [
 		{

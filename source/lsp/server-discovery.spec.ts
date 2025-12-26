@@ -1,11 +1,16 @@
 import test from 'ava';
+import {mkdtempSync, writeFileSync, rmSync} from 'fs';
+import {join} from 'path';
+import {tmpdir} from 'os';
 import type { LSPServerConfig } from './lsp-client';
 import {
 	findLocalServer,
 	getKnownServersStatus,
 	getLanguageId,
 	getMissingServerHints,
+	getOrderedServers,
 	getServerForLanguage,
+	isDenoProject,
 } from './server-discovery';
 
 console.log(`\nserver-discovery.spec.ts`);
@@ -584,6 +589,112 @@ test('getServerForLanguage - handles empty extension', t => {
 	];
 	const result = getServerForLanguage(servers, '');
 	t.is(result, undefined);
+});
+
+// isDenoProject tests
+test('isDenoProject - returns false for non-existent directory', t => {
+	const result = isDenoProject('/non-existent-path-xyz-123');
+	t.is(result, false);
+});
+
+test('isDenoProject - returns false for directory without deno config', t => {
+	// Using a known directory that won't have deno.json
+	const result = isDenoProject(tmpdir());
+	t.is(result, false);
+});
+
+test('isDenoProject - returns false for current directory without deno config', t => {
+	// The nanocoder project itself doesn't have deno.json
+	const result = isDenoProject(process.cwd());
+	t.is(result, false);
+});
+
+test('isDenoProject - returns true when deno.json exists', t => {
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.json'), '{}');
+		const result = isDenoProject(tmpDir);
+		t.is(result, true);
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+test('isDenoProject - returns true when deno.jsonc exists', t => {
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.jsonc'), '{}');
+		const result = isDenoProject(tmpDir);
+		t.is(result, true);
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+test('isDenoProject - returns true when both deno.json and deno.jsonc exist', t => {
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.json'), '{}');
+		writeFileSync(join(tmpDir, 'deno.jsonc'), '{}');
+		const result = isDenoProject(tmpDir);
+		t.is(result, true);
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+// getOrderedServers tests
+test('getOrderedServers - moves Deno to front in Deno project', t => {
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.json'), '{}');
+		const servers = getOrderedServers(tmpDir);
+		t.is(servers[0].name, 'deno', 'Deno server should be first');
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+test('getOrderedServers - keeps TypeScript first for non-Deno projects', t => {
+	const servers = getOrderedServers(tmpdir());
+	t.is(servers[0].name, 'typescript-language-server', 'TypeScript server should be first for non-Deno projects');
+});
+
+test('getOrderedServers - preserves all servers in result', t => {
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.json'), '{}');
+		const servers = getOrderedServers(tmpDir);
+		const serverNames = servers.map(s => s.name);
+		t.true(serverNames.includes('deno'), 'Should include Deno server');
+		t.true(serverNames.includes('typescript-language-server'), 'Should include TypeScript server');
+		t.true(serverNames.includes('pyright'), 'Should include Pyright server');
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+test('getOrderedServers - does not mutate original KNOWN_SERVERS array', t => {
+	const originalFirst = getOrderedServers(tmpdir())[0].name;
+
+	// Create Deno project and get ordered servers
+	const tmpDir = mkdtempSync(join(tmpdir(), 'deno-test-'));
+	try {
+		writeFileSync(join(tmpDir, 'deno.json'), '{}');
+		getOrderedServers(tmpDir);
+
+		// Verify original order is preserved for non-Deno projects
+		const afterFirst = getOrderedServers(tmpdir())[0].name;
+		t.is(originalFirst, afterFirst, 'Original server order should not be mutated');
+	} finally {
+		rmSync(tmpDir, { recursive: true });
+	}
+});
+
+test('getOrderedServers - defaults to process.cwd() when no projectRoot provided', t => {
+	// Current directory (nanocoder) is not a Deno project
+	const servers = getOrderedServers();
+	t.is(servers[0].name, 'typescript-language-server', 'Should default to TypeScript first when cwd is not Deno project');
 });
 
 test('getKnownServersStatus - includes docker-language-server', t => {

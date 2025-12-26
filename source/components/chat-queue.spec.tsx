@@ -81,3 +81,14 @@ test('ChatQueue handles components without keys', t => {
 		render(<ChatQueue staticComponents={components} queuedComponents={[]} />);
 	});
 });
+
+test('ChatQueue generates default key for component without key prop', t => {
+	// Component without a key prop - should use fallback `static-${index}`
+	const ComponentWithoutKey = () => <Box>No key</Box>;
+	// Add the component without a React key prop
+	const components = [<ComponentWithoutKey />];
+
+	t.notThrows(() => {
+		render(<ChatQueue staticComponents={components} queuedComponents={[]} />);
+	});
+});

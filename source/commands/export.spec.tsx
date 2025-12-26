@@ -3,6 +3,9 @@ import type {Message} from '@/types/index';
 import {exportCommand} from './export';
 import {promises as fs} from 'fs';
 import React from 'react';
+import {render} from 'ink-testing-library';
+import {themes} from '../config/themes';
+import {ThemeContext} from '../hooks/useTheme';
 
 // Mock fs module
 const originalWriteFile = fs.writeFile;
@@ -19,6 +22,18 @@ test.beforeEach(() => {
 test.afterEach(() => {
 	fs.writeFile = originalWriteFile;
 });
+
+// Mock ThemeProvider for testing
+const MockThemeProvider = ({children}: {children: React.ReactNode}) => {
+	const mockTheme = {
+		currentTheme: 'tokyo-night' as const,
+		colors: themes['tokyo-night'].colors,
+		setCurrentTheme: () => {},
+	};
+	return (
+		<ThemeContext.Provider value={mockTheme}>{children}</ThemeContext.Provider>
+	);
+};
 
 const testMessages: Message[] = [
 	{role: 'user', content: 'Hello'},
@@ -87,6 +102,27 @@ test('exportCommand formats assistant messages correctly', async t => {
 	t.true(content.includes('Assistant response'));
 });
 
+test('exportCommand formats assistant messages with empty content', async t => {
+	const messages: Message[] = [{role: 'assistant', content: ''}];
+	await exportCommand.handler(['test.md'], messages, testMetadata);
+
+	const content = mockWriteFileCalls[0].content;
+	t.true(content.includes('## Assistant'));
+	// Should have empty content after the header
+	t.true(content.includes('## Assistant\n\n'));
+});
+
+test('exportCommand formats assistant messages with undefined content', async t => {
+	const messages: Message[] = [
+		{role: 'assistant', content: undefined as unknown as string},
+	];
+	await exportCommand.handler(['test.md'], messages, testMetadata);
+
+	const content = mockWriteFileCalls[0].content;
+	t.true(content.includes('## Assistant'));
+	// Should handle undefined content gracefully
+});
+
 test('exportCommand formats assistant messages with tool calls', async t => {
 	const messages: Message[] = [
 		{
@@ -128,4 +164,24 @@ test('exportCommand handles unknown message role', async t => {
 
 	// Should not throw, just handle gracefully
 	t.is(mockWriteFileCalls.length, 1);
+});
+
+test('exportCommand renders Export component with correct filename', async t => {
+	const result = await exportCommand.handler(
+		['my-export.md'],
+		testMessages,
+		testMetadata,
+	);
+
+	// Render the result to execute the Export component
+	if (React.isValidElement(result)) {
+		const {lastFrame} = render(
+			<MockThemeProvider>{result}</MockThemeProvider>,
+		);
+		const output = lastFrame();
+
+		// Verify the output contains the filename
+		t.truthy(output);
+		t.regex(output!, /my-export\.md/);
+	}
 });

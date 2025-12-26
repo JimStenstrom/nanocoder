@@ -624,6 +624,28 @@ test('UsageDisplay handles over 100% usage', t => {
 	t.regex(output!, /\d+%/); // Should display some percentage
 });
 
+test('UsageDisplay displays warning color for moderate usage', t => {
+	// 75% usage - in the warning range (70-89%)
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<UsageDisplay
+				provider="openai"
+				model="gpt-4"
+				contextLimit={10000}
+				currentTokens={7500} // 75% usage - warning range
+				breakdown={createMockBreakdown()}
+				messages={createMockMessages()}
+				tokenizerName="cl100k_base"
+				getMessageTokens={mockGetMessageTokens}
+			/>
+		</MockThemeProvider>,
+	);
+
+	const output = lastFrame();
+	t.truthy(output);
+	t.regex(output!, /75%/); // Should display 75%
+});
+
 test('UsageDisplay handles very large token counts', t => {
 	const largeBreakdown: TokenBreakdown = {
 		system: 100000,

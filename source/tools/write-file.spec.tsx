@@ -356,6 +356,296 @@ test('write_file: can overwrite files (unlike create_file)', async t => {
 });
 
 // ============================================================================
+// Formatter Tests
+// ============================================================================
+
+test('write_file formatter: generates preview for new file', async t => {
+	const filePath = join(testDir, 'new.txt');
+
+	if (!writeFileTool.formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	const preview = await writeFileTool.formatter({
+		path: filePath,
+		content: 'Hello World\n',
+	});
+
+	// Verify preview is a valid React element
+	t.truthy(preview);
+	t.truthy(
+		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
+	);
+});
+
+test('write_file formatter: generates result message after execution', async t => {
+	const filePath = join(testDir, 'result.txt');
+
+	if (!writeFileTool.formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	// Execute the tool first
+	const result = await executeWriteFile({
+		path: filePath,
+		content: 'Test content\n',
+	});
+
+	// Then get the formatter result
+	const preview = await writeFileTool.formatter(
+		{
+			path: filePath,
+			content: 'Test content\n',
+		},
+		result,
+	);
+
+	t.truthy(preview);
+	t.truthy(
+		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
+	);
+});
+
+test('write_file formatter: handles empty content', async t => {
+	const filePath = join(testDir, 'empty.txt');
+
+	if (!writeFileTool.formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	const preview = await writeFileTool.formatter({
+		path: filePath,
+		content: '',
+	});
+
+	t.truthy(preview);
+	t.truthy(
+		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
+	);
+});
+
+test('write_file formatter: handles file_path parameter', async t => {
+	const filePath = join(testDir, 'filepath.txt');
+
+	if (!writeFileTool.formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	// Test with file_path parameter instead of path
+	const preview = await writeFileTool.formatter({
+		file_path: filePath,
+		content: 'Content\n',
+	});
+
+	t.truthy(preview);
+});
+
+test('write_file formatter: generates preview with large content', async t => {
+	const filePath = join(testDir, 'large.txt');
+	const largeContent = Array.from({length: 100}, (_, i) => `Line ${i + 1}`).join('\n');
+
+	if (!writeFileTool.formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	const preview = await writeFileTool.formatter({
+		path: filePath,
+		content: largeContent,
+	});
+
+	t.truthy(preview);
+	t.truthy(
+		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
+	);
+});
+
+// ============================================================================
+// Validator Additional System Directory Tests
+// ============================================================================
+
+test('write_file validator: rejects /etc directory', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	const result = await writeFileTool.validator({
+		path: '/etc/test.conf',
+		content: 'test',
+	});
+
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('system directory'));
+	}
+});
+
+test('write_file validator: rejects /sys directory', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	const result = await writeFileTool.validator({
+		path: '/sys/kernel/test',
+		content: 'test',
+	});
+
+	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /sys doesn't exist
+	if (!result.valid) {
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
+	}
+});
+
+test('write_file validator: rejects /proc directory', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	const result = await writeFileTool.validator({
+		path: '/proc/meminfo',
+		content: 'test',
+	});
+
+	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /proc doesn't exist
+	if (!result.valid) {
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
+	}
+});
+
+test('write_file validator: rejects /dev directory', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	const result = await writeFileTool.validator({
+		path: '/dev/null',
+		content: 'test',
+	});
+
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('system directory'));
+	}
+});
+
+test('write_file validator: rejects /boot directory', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	const result = await writeFileTool.validator({
+		path: '/boot/config',
+		content: 'test',
+	});
+
+	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /boot doesn't exist
+	if (!result.valid) {
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
+	}
+});
+
+test('write_file validator: rejects Windows system directories', async t => {
+	if (!writeFileTool.validator) {
+		t.fail('Validator not defined');
+		return;
+	}
+
+	// Note: This test only works on Windows due to path resolution
+	// On Linux/Mac, Windows paths are resolved as relative paths
+	const isWindows = process.platform === 'win32';
+
+	if (isWindows) {
+		const windowsPaths = [
+			'C:\\Windows\\System32\\test.exe',
+			'C:\\Program Files\\test.txt',
+		];
+
+		for (const path of windowsPaths) {
+			const result = await writeFileTool.validator({
+				path,
+				content: 'test',
+			});
+
+			t.false(result.valid);
+			if (!result.valid) {
+				t.true(result.error.includes('system directory'));
+			}
+		}
+	} else {
+		// On non-Windows, just verify the test would work with proper paths
+		t.pass('Skipped on non-Windows platform');
+	}
+});
+
+// ============================================================================
+// Additional Edge Case Tests
+// ============================================================================
+
+test('write_file: handles UTF-8 content with unicode', async t => {
+	const filePath = join(testDir, 'unicode.txt');
+	const content = 'Hello 世界 🚀\nEmoji: 😀😃😄\nAccented: éàüö\n';
+
+	await executeWriteFile({
+		path: filePath,
+		content,
+	});
+
+	const actual = await readFile(filePath, 'utf-8');
+	t.is(actual, content);
+});
+
+test('write_file: handles binary-like content', async t => {
+	const filePath = join(testDir, 'binary.txt');
+	const content = '\x00\x01\x02\x03\xff\xfe\xfd';
+
+	await executeWriteFile({
+		path: filePath,
+		content,
+	});
+
+	const actual = await readFile(filePath, 'utf-8');
+	t.is(actual, content);
+});
+
+test('write_file: handles very long lines', async t => {
+	const filePath = join(testDir, 'longlines.txt');
+	const longLine = 'x'.repeat(10000);
+	const content = `${longLine}\n${longLine}\n`;
+
+	await executeWriteFile({
+		path: filePath,
+		content,
+	});
+
+	const actual = await readFile(filePath, 'utf-8');
+	t.is(actual, content);
+});
+
+// ============================================================================
 // Formatter Tests (Visual Display with Ink)
 // ============================================================================
 

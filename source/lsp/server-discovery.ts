@@ -12,6 +12,11 @@ import {
 } from '@/constants';
 import type {LSPServerConfig} from './lsp-client';
 
+/**
+ * Deno project configuration file names
+ */
+const DENO_CONFIG_FILES = ['deno.json', 'deno.jsonc'] as const;
+
 interface LanguageServerDefinition {
 	name: string;
 	command: string;
@@ -220,6 +225,21 @@ const KNOWN_SERVERS: LanguageServerDefinition[] = [
 ];
 
 /**
+ * Check if a directory is a Deno project by looking for deno.json or deno.jsonc
+ * @param projectRoot The directory to check (defaults to process.cwd())
+ * @returns true if a Deno configuration file is found, false otherwise
+ */
+export function isDenoProject(projectRoot: string = process.cwd()): boolean {
+	for (const configFile of DENO_CONFIG_FILES) {
+		const configPath = join(projectRoot, configFile); // nosemgrep
+		if (existsSync(configPath)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Check if a command is available in PATH or locally in node_modules
  * Returns the path to use, or null if not found
  */
@@ -307,13 +327,43 @@ function verifyLSPServerWithCommunication(
 }
 
 /**
- * Discover all installed language servers
+ * Get servers ordered by project context
+ * Prioritizes Deno over TypeScript LSP when in a Deno project
+ * @param projectRoot The project root to check for Deno config (defaults to process.cwd())
+ * @returns Ordered array of server definitions with Deno first if in a Deno project
+ * @internal Exported for testing purposes
  */
-export async function discoverLanguageServers(): Promise<LSPServerConfig[]> {
+export function getOrderedServers(
+	projectRoot?: string,
+): LanguageServerDefinition[] {
+	const root = projectRoot ?? process.cwd();
+	const servers = [...KNOWN_SERVERS];
+
+	if (isDenoProject(root)) {
+		// Move Deno server to the front for Deno projects
+		// Skip if Deno is already first (index 0) or not found (index -1)
+		const denoIndex = servers.findIndex(s => s.name === 'deno');
+		if (denoIndex > 0) {
+			const [denoServer] = servers.splice(denoIndex, 1);
+			servers.unshift(denoServer);
+		}
+	}
+
+	return servers;
+}
+
+/**
+ * Discover all installed language servers
+ * @param projectRoot Optional project root for context-aware server selection
+ */
+export async function discoverLanguageServers(
+	projectRoot?: string,
+): Promise<LSPServerConfig[]> {
 	const discovered: LSPServerConfig[] = [];
 	const coveredLanguages = new Set<string>();
+	const orderedServers = getOrderedServers(projectRoot);
 
-	for (const server of KNOWN_SERVERS) {
+	for (const server of orderedServers) {
 		// Skip if we already have a server for all of this server's languages
 		const hasNewLanguages = server.languages.some(
 			lang => !coveredLanguages.has(lang),

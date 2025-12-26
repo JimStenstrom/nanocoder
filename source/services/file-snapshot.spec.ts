@@ -567,3 +567,48 @@ test.serial('FileSnapshotService defaults to current working directory', t => {
 	// Just verify it doesn't throw
 	t.truthy(service);
 });
+
+test.serial('FileSnapshotService getModifiedFiles handles git not available', async t => {
+	const tempDir = await createTempDir();
+	try {
+		// Create a directory that's not a git repo
+		const nonGitDir = path.join(tempDir, 'non-git-repo');
+		await fs.mkdir(nonGitDir, {recursive: true});
+
+		const service = new FileSnapshotService(nonGitDir);
+		const files = service.getModifiedFiles();
+
+		// Should return empty array or array when git is not available
+		// (may return files from parent git repo in some environments)
+		t.true(Array.isArray(files));
+	} finally {
+		await cleanupTempDir(tempDir);
+	}
+});
+
+test.serial('FileSnapshotService validateRestorePath handles access errors', async t => {
+	const tempDir = await createTempDir();
+	try {
+		const service = new FileSnapshotService(tempDir);
+		const snapshots = new Map<string, string>();
+
+		// Create a file in temp dir to simulate a file that exists
+		const testFile = path.join(tempDir, 'test.txt');
+		await fs.writeFile(testFile, 'content');
+
+		// Make the file read-only by removing write permissions
+		await fs.chmod(testFile, 0o444);
+
+		// Add the file to snapshots (relative path)
+		snapshots.set('test.txt', 'new content');
+
+		const result = await service.validateRestorePath(snapshots);
+
+		// Should detect that the file is not writable
+		t.false(result.valid);
+		t.true(result.errors.length > 0);
+		t.true(result.errors.some(e => e.includes('test.txt')));
+	} finally {
+		await cleanupTempDir(tempDir);
+	}
+});

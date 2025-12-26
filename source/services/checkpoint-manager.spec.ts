@@ -411,6 +411,25 @@ test.serial(
 );
 
 test.serial(
+	'CheckpointManager getCheckpointMetadata throws error for non-existent checkpoint',
+	async t => {
+		const tempDir = await createTempDir();
+		try {
+			const manager = new CheckpointManager(tempDir);
+
+			await t.throwsAsync(
+				async () => {
+					await manager.getCheckpointMetadata('does-not-exist');
+				},
+				{message: /does not exist/},
+			);
+		} finally {
+			await cleanupTempDir(tempDir);
+		}
+	},
+);
+
+test.serial(
 	'CheckpointManager generates description from first user message',
 	async t => {
 		const tempDir = await createTempDir();

@@ -5,12 +5,22 @@ import {logError} from '@/utils/message-queue';
 import type {UserPreferences} from '@/types/index';
 
 let PREFERENCES_PATH: string | null = null;
+let CACHED_CONFIG_DIR: string | undefined = undefined;
 
 function getPreferencesPath(): string {
-	if (!PREFERENCES_PATH) {
+	// Re-compute path if NANOCODER_CONFIG_DIR has changed (important for tests)
+	const currentConfigDir = process.env.NANOCODER_CONFIG_DIR;
+	if (!PREFERENCES_PATH || CACHED_CONFIG_DIR !== currentConfigDir) {
 		PREFERENCES_PATH = getClosestConfigFile('nanocoder-preferences.json');
+		CACHED_CONFIG_DIR = currentConfigDir;
 	}
 	return PREFERENCES_PATH;
+}
+
+// Export for testing purposes - allows tests to reset the cache
+export function resetPreferencesCache(): void {
+	PREFERENCES_PATH = null;
+	CACHED_CONFIG_DIR = undefined;
 }
 
 export function loadPreferences(): UserPreferences {

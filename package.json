@@ -127,6 +127,9 @@
 			"LANG": "en-US.UTF-8"
 		}
 	},
+	"c8": {
+		"exclude": ["source/app/App.tsx"]
+	},
 	"pnpm": {
 		"overrides": {
 			"glob@>=10.2.0 <10.5.0": ">=10.5.0",

@@ -1,5 +1,5 @@
 // Main client export
-export {AISDKClient} from './AISDKClient.js';
+export {AISDKClient} from './ai-sdk-client.js';
 
 // Exported for testing purposes
 export {parseAPIError} from './error-handling/error-parser.js';

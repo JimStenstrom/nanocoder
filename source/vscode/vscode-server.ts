@@ -108,7 +108,9 @@ export class VSCodeServer {
 				this.wss.on('error', _error => {
 					resolve(false);
 				});
-			} catch {
+			} catch (error) {
+				const logger = getLogger();
+				logger.debug('WebSocket server failed to start', {error});
 				resolve(false);
 			}
 		});

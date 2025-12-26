@@ -218,3 +218,18 @@ test('convertToModelMessages handles multiple messages', t => {
 	t.is(result[1].role, 'user');
 	t.is(result[2].role, 'assistant');
 });
+
+test('convertToModelMessages handles unknown role with fallback', t => {
+	const messages: Message[] = [
+		{
+			role: 'unknown' as any, // Invalid role not in expected set
+			content: 'Test content',
+		},
+	];
+
+	const result = convertToModelMessages(messages);
+	t.is(result.length, 1);
+	// Should fall back to user role
+	t.is(result[0].role, 'user');
+	t.is(result[0].content, 'Test content');
+});
