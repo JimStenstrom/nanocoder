@@ -23,8 +23,15 @@ class CommandRegistry {
 	}
 
 	getCompletions(prefix: string): string[] {
+		const commandNames = Array.from(this.commands.keys());
+
+		// No prefix: return all commands alphabetically
+		if (!prefix) {
+			return commandNames.sort((a, b) => a.localeCompare(b));
+		}
+
 		// Use fuzzy matching with scoring
-		const scoredCommands = Array.from(this.commands.keys())
+		const scoredCommands = commandNames
 			.map(name => ({
 				name,
 				score: fuzzyScore(name, prefix),

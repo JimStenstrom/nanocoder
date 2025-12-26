@@ -126,14 +126,15 @@ export default function UserInput({
 		}
 
 		const commandPrefix = input.slice(1).split(' ')[0];
-		if (commandPrefix.length === 0) {
-			return [];
-		}
 
 		const builtInCompletions = commandRegistry.getCompletions(commandPrefix);
 		const customCompletions = customCommands
 			.filter(cmd => {
-				return cmd.toLowerCase().includes(commandPrefix.toLowerCase());
+				// Include all when no prefix, otherwise filter by prefix
+				return (
+					!commandPrefix ||
+					cmd.toLowerCase().includes(commandPrefix.toLowerCase())
+				);
 			})
 			.sort((a, b) => a.localeCompare(b));
 
