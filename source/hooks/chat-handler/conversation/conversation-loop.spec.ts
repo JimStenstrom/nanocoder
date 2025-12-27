@@ -82,7 +82,6 @@ const createDefaultParams = (overrides = {}) => ({
 	setTokenCount: () => {},
 	setMessages: () => {},
 	addToChatQueue: () => {},
-	componentKeyCounter: 1,
 	currentModel: 'test-model',
 	developmentMode: 'normal' as const,
 	nonInteractiveMode: false,

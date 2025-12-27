@@ -1,11 +1,12 @@
 /**
  * Usage tracker
  * Tracks current session usage
+ *
+ * Uses unified session service (issue #229) for session ID.
  */
 
-import {randomBytes} from 'node:crypto';
-
 import {getModelContextLimit} from '@/models/index';
+import {getSessionId} from '@/session';
 import type {Message} from '@/types/core';
 import type {Tokenizer} from '@/types/tokenization';
 import type {CurrentSessionStats, SessionUsage} from '../types/usage';
@@ -19,14 +20,11 @@ export class SessionTracker {
 	private model: string;
 
 	constructor(provider: string, model: string) {
-		this.sessionId = this.generateSessionId();
+		// Use shared session ID from unified session service
+		this.sessionId = getSessionId();
 		this.startTime = Date.now();
 		this.provider = provider;
 		this.model = model;
-	}
-
-	private generateSessionId(): string {
-		return `${Date.now()}-${randomBytes(8).toString('hex')}`;
 	}
 
 	async getCurrentStats(

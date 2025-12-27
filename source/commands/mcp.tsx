@@ -2,6 +2,7 @@ import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {getToolManager} from '@/message-handler';
+import {generateKey} from '@/session';
 import {ToolManager} from '@/tools/tool-manager';
 import type {Command} from '@/types/index';
 import {Box, Text} from 'ink';
@@ -154,7 +155,7 @@ export const mcpCommand: Command = {
 
 		return Promise.resolve(
 			React.createElement(MCP, {
-				key: `mcp-${Date.now()}`,
+				key: generateKey('mcp'),
 				toolManager: toolManager,
 			}),
 		);

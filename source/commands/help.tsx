@@ -5,6 +5,7 @@ import {commandRegistry} from '@/commands';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
+import {generateKey} from '@/session';
 import {Command} from '@/types/index';
 import {Box, Text} from 'ink';
 import React from 'react';
@@ -112,7 +113,7 @@ export const helpCommand: Command = {
 		const version = await getPackageVersion();
 
 		return React.createElement(Help, {
-			key: `help-${Date.now()}`,
+			key: generateKey('help'),
 			version,
 			commands: commands,
 		});

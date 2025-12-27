@@ -7,6 +7,7 @@ import {
 	updateLastUsed,
 } from '@/config/preferences';
 import {getToolManager} from '@/message-handler';
+import {generateKey} from '@/session';
 import {LLMClient, Message} from '@/types/core';
 import type {ThemePreset} from '@/types/ui';
 import React from 'react';
@@ -27,7 +28,6 @@ interface UseModeHandlersProps {
 	setIsModelDatabaseMode: (mode: boolean) => void;
 	setIsConfigWizardMode: (mode: boolean) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
 	reinitializeMCPServers: (
 		toolManager: import('@/tools/tool-manager').ToolManager,
 	) => Promise<void>;
@@ -49,7 +49,6 @@ export function useModeHandlers({
 	setIsModelDatabaseMode,
 	setIsConfigWizardMode,
 	addToChatQueue,
-	componentKeyCounter,
 	reinitializeMCPServers,
 }: UseModeHandlersProps) {
 	// Helper function to enter model selection mode
@@ -78,7 +77,7 @@ export function useModeHandlers({
 			// Add success message to chat queue
 			addToChatQueue(
 				<SuccessMessage
-					key={`model-changed-${componentKeyCounter}`}
+					key={generateKey('model-changed')}
 					message={`Model changed to: ${selectedModel}. Chat history cleared.`}
 					hideBox={true}
 				/>,
@@ -105,7 +104,7 @@ export function useModeHandlers({
 					// Provider was forced to a different one (likely due to missing config)
 					addToChatQueue(
 						<ErrorMessage
-							key={`provider-forced-${componentKeyCounter}`}
+							key={generateKey('provider-forced')}
 							message={`${selectedProvider} is not available. Please ensure it's properly configured in agents.config.json.`}
 							hideBox={true}
 						/>,
@@ -130,7 +129,7 @@ export function useModeHandlers({
 				// Add success message to chat queue
 				addToChatQueue(
 					<SuccessMessage
-						key={`provider-changed-${componentKeyCounter}`}
+						key={generateKey('provider-changed')}
 						message={`Provider changed to: ${actualProvider}, model: ${newModel}. Chat history cleared.`}
 						hideBox={true}
 					/>,
@@ -139,7 +138,7 @@ export function useModeHandlers({
 				// Add error message if provider change fails
 				addToChatQueue(
 					<ErrorMessage
-						key={`provider-error-${componentKeyCounter}`}
+						key={generateKey('provider-error')}
 						message={`Failed to change provider to ${selectedProvider}: ${String(
 							error,
 						)}`}
@@ -173,7 +172,7 @@ export function useModeHandlers({
 		// Add success message to chat queue
 		addToChatQueue(
 			<SuccessMessage
-				key={`theme-changed-${componentKeyCounter}`}
+				key={generateKey('theme-changed')}
 				message={`Theme changed to: ${selectedTheme}.`}
 				hideBox={true}
 			/>,
@@ -208,7 +207,7 @@ export function useModeHandlers({
 		if (configPath) {
 			addToChatQueue(
 				<SuccessMessage
-					key={`config-wizard-complete-${componentKeyCounter}`}
+					key={generateKey('config-wizard-complete')}
 					message={`Configuration saved to: ${configPath}.`}
 					hideBox={true}
 				/>,
@@ -240,7 +239,7 @@ export function useModeHandlers({
 						await reinitializeMCPServers(toolManager);
 						addToChatQueue(
 							<SuccessMessage
-								key={`mcp-reinit-${componentKeyCounter}`}
+								key={generateKey('mcp-reinit')}
 								message="MCP servers reinitialized with new configuration."
 								hideBox={true}
 							/>,
@@ -248,7 +247,7 @@ export function useModeHandlers({
 					} catch (mcpError) {
 						addToChatQueue(
 							<ErrorMessage
-								key={`mcp-reinit-error-${componentKeyCounter}`}
+								key={generateKey('mcp-reinit-error')}
 								message={`Failed to reinitialize MCP servers: ${String(
 									mcpError,
 								)}`}
@@ -260,7 +259,7 @@ export function useModeHandlers({
 
 				addToChatQueue(
 					<SuccessMessage
-						key={`config-init-${componentKeyCounter}`}
+						key={generateKey('config-init')}
 						message={`Ready! Using provider: ${actualProvider}, model: ${newModel}`}
 						hideBox={true}
 					/>,
@@ -268,7 +267,7 @@ export function useModeHandlers({
 			} catch (error) {
 				addToChatQueue(
 					<ErrorMessage
-						key={`config-init-error-${componentKeyCounter}`}
+						key={generateKey('config-init-error')}
 						message={`Failed to initialize with new configuration: ${String(
 							error,
 						)}`}

@@ -1,4 +1,5 @@
 import {SuccessMessage} from '@/components/message-box';
+import {generateKey} from '@/session';
 import {Command} from '@/types/index';
 import React from 'react';
 
@@ -15,7 +16,7 @@ export const clearCommand: Command = {
 		// Return info message saying chat was cleared
 		return Promise.resolve(
 			React.createElement(Clear, {
-				key: `clear-${Date.now()}`,
+				key: generateKey('clear'),
 			}),
 		);
 	},

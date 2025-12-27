@@ -2,6 +2,7 @@ import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import AssistantMessage from '@/components/assistant-message';
 import {ErrorMessage} from '@/components/message-box';
 import UserMessage from '@/components/user-message';
+import {generateKey} from '@/session';
 import {parseToolCalls} from '@/tool-calling/index';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, Message, ToolCall, ToolResult} from '@/types/core';
@@ -25,7 +26,6 @@ interface ProcessAssistantResponseParams {
 	setTokenCount: (count: number) => void;
 	setMessages: (messages: Message[]) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
 	currentModel: string;
 	developmentMode: 'normal' | 'auto-accept' | 'plan';
 	nonInteractiveMode: boolean;
@@ -63,7 +63,6 @@ export const processAssistantResponse = async (
 		setTokenCount,
 		setMessages,
 		addToChatQueue,
-		componentKeyCounter,
 		currentModel,
 		developmentMode,
 		nonInteractiveMode,
@@ -102,7 +101,6 @@ export const processAssistantResponse = async (
 						toolResult,
 						toolManager,
 						addToChatQueue,
-						componentKeyCounter,
 					);
 				})();
 			},
@@ -131,7 +129,7 @@ export const processAssistantResponse = async (
 		// Display error to user
 		addToChatQueue(
 			<ErrorMessage
-				key={`malformed-tool-${Date.now()}`}
+				key={generateKey('malformed-tool')}
 				message={errorContent}
 				hideBox={true}
 			/>,
@@ -176,7 +174,7 @@ export const processAssistantResponse = async (
 	if (cleanedContent.trim()) {
 		addToChatQueue(
 			<AssistantMessage
-				key={`assistant-${componentKeyCounter}`}
+				key={generateKey('assistant')}
 				message={cleanedContent}
 				model={currentModel}
 			/>,
@@ -240,7 +238,7 @@ export const processAssistantResponse = async (
 		for (const error of errorResults) {
 			addToChatQueue(
 				<ErrorMessage
-					key={`unknown-tool-${error.tool_call_id}-${Date.now()}`}
+					key={generateKey('unknown-tool')}
 					message={error.content}
 					hideBox={true}
 				/>,
@@ -288,7 +286,7 @@ export const processAssistantResponse = async (
 				for (const error of blockedToolErrors) {
 					addToChatQueue(
 						<ErrorMessage
-							key={`plan-mode-blocked-${error.tool_call_id}-${Date.now()}`}
+							key={generateKey('plan-mode-blocked')}
 							message={error.content}
 							hideBox={true}
 						/>,
@@ -409,7 +407,6 @@ export const processAssistantResponse = async (
 				toolManager,
 				conversationStateManager,
 				addToChatQueue,
-				componentKeyCounter,
 			);
 
 			// If we have results, continue the conversation with them
@@ -441,7 +438,7 @@ export const processAssistantResponse = async (
 				// Add error message to UI
 				addToChatQueue(
 					<ErrorMessage
-						key={`tool-approval-required-${Date.now()}`}
+						key={generateKey('tool-approval-required')}
 						message={errorMsg}
 						hideBox={true}
 					/>,
@@ -496,10 +493,7 @@ export const processAssistantResponse = async (
 
 		// Display a "continue" message in chat so user knows what happened
 		addToChatQueue(
-			<UserMessage
-				key={`auto-continue-${componentKeyCounter}`}
-				message="continue"
-			/>,
+			<UserMessage key={generateKey('auto-continue')} message="continue" />,
 		);
 
 		// Don't include the empty assistantMsg - it would cause API error

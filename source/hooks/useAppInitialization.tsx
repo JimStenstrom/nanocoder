@@ -30,6 +30,7 @@ import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {type LSPInitResult, getLSPManager} from '@/lsp/index';
 import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
+import {generateKey} from '@/session';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CustomCommand} from '@/types/commands';
 import {
@@ -58,7 +59,6 @@ interface UseAppInitializationProps {
 	setPreferencesLoaded: (loaded: boolean) => void;
 	setCustomCommandsCount: (count: number) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
 	customCommandCache: Map<string, CustomCommand>;
 	setIsConfigWizardMode: (mode: boolean) => void;
 }
@@ -79,7 +79,6 @@ export function useAppInitialization({
 	setPreferencesLoaded,
 	setCustomCommandsCount,
 	addToChatQueue,
-	componentKeyCounter,
 	customCommandCache,
 	setIsConfigWizardMode,
 }: UseAppInitializationProps) {
@@ -301,7 +300,7 @@ export function useAppInitialization({
 			if (error instanceof ConfigurationError) {
 				addToChatQueue(
 					<InfoMessage
-						key={`config-error-${componentKeyCounter}`}
+						key={generateKey('config-error')}
 						message="Configuration needed. Let's set up your providers..."
 						hideBox={true}
 					/>,
@@ -314,7 +313,7 @@ export function useAppInitialization({
 				// Regular error - show simple error message
 				addToChatQueue(
 					<ErrorMessage
-						key={`init-error-${componentKeyCounter}`}
+						key={generateKey('init-error')}
 						message={`No providers available: ${String(error)}`}
 						hideBox={true}
 					/>,
@@ -328,7 +327,7 @@ export function useAppInitialization({
 		} catch (error) {
 			addToChatQueue(
 				<ErrorMessage
-					key={`commands-error-${componentKeyCounter}`}
+					key={generateKey('commands-error')}
 					message={`Failed to load custom commands: ${String(error)}`}
 					hideBox={true}
 				/>,

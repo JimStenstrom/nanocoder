@@ -1,5 +1,6 @@
 import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import {ErrorMessage} from '@/components/message-box';
+import {generateKey} from '@/session';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {ToolCall, ToolResult} from '@/types/core';
 import {formatError} from '@/utils/error-formatter';
@@ -18,7 +19,6 @@ export const executeToolsDirectly = async (
 	toolManager: ToolManager | null,
 	conversationStateManager: React.MutableRefObject<ConversationStateManager>,
 	addToChatQueue: (component: React.ReactNode) => void,
-	componentKeyCounter: number,
 ): Promise<ToolResult[]> => {
 	// Import processToolUse here to avoid circular dependencies
 	const {processToolUse} = await import('@/message-handler');
@@ -51,7 +51,7 @@ export const executeToolsDirectly = async (
 					// Display the validation error to the user
 					addToChatQueue(
 						<ErrorMessage
-							key={`validation-error-${toolCall.id}-${Date.now()}`}
+							key={generateKey('validation-error')}
 							message={validationResult.error}
 							hideBox={true}
 						/>,
@@ -71,13 +71,7 @@ export const executeToolsDirectly = async (
 			);
 
 			// Display the tool result immediately
-			await displayToolResult(
-				toolCall,
-				result,
-				toolManager,
-				addToChatQueue,
-				componentKeyCounter,
-			);
+			await displayToolResult(toolCall, result, toolManager, addToChatQueue);
 		} catch (error) {
 			// Handle tool execution errors
 			const errorResult: ToolResult = {
@@ -100,7 +94,6 @@ export const executeToolsDirectly = async (
 				errorResult,
 				toolManager,
 				addToChatQueue,
-				componentKeyCounter,
 			);
 		}
 	}

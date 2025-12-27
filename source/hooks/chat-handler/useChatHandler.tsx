@@ -1,6 +1,7 @@
 import {ConversationStateManager} from '@/app/utils/conversation-state';
 import UserMessage from '@/components/user-message';
 import {promptHistory} from '@/prompt-history';
+import {generateKey} from '@/session';
 import type {Message} from '@/types/core';
 import {MessageBuilder} from '@/utils/message-builder';
 import {processPromptTemplate} from '@/utils/prompt-processor';
@@ -24,7 +25,6 @@ export function useChatHandler({
 	currentModel,
 	setIsCancelling,
 	addToChatQueue,
-	componentKeyCounter,
 	abortController,
 	setAbortController,
 	developmentMode = 'normal',
@@ -55,9 +55,9 @@ export function useChatHandler({
 	// Helper to display errors in chat queue
 	const displayError = React.useCallback(
 		(error: unknown, keyPrefix: string) => {
-			displayErrorHelper(error, keyPrefix, addToChatQueue, componentKeyCounter);
+			displayErrorHelper(error, keyPrefix, addToChatQueue);
 		},
-		[addToChatQueue, componentKeyCounter],
+		[addToChatQueue],
 	);
 
 	// Reset conversation state when messages are cleared
@@ -85,7 +85,6 @@ export function useChatHandler({
 					setTokenCount,
 					setMessages,
 					addToChatQueue,
-					componentKeyCounter,
 					currentModel,
 					developmentMode,
 					nonInteractiveMode,
@@ -108,7 +107,6 @@ export function useChatHandler({
 			setAbortController,
 			setMessages,
 			addToChatQueue,
-			componentKeyCounter,
 			currentModel,
 			developmentMode,
 			nonInteractiveMode,
@@ -131,10 +129,7 @@ export function useChatHandler({
 
 		// Add user message to chat using display version (with placeholders)
 		addToChatQueue(
-			<UserMessage
-				key={`user-${componentKeyCounter}`}
-				message={displayMessage}
-			/>,
+			<UserMessage key={generateKey('user')} message={displayMessage} />,
 		);
 
 		// Add user message to conversation history
@@ -169,7 +164,6 @@ export function useChatHandler({
 				currentProvider,
 				currentModel,
 				addToChatQueue,
-				componentKeyCounter,
 			);
 
 			// Use the conversation loop

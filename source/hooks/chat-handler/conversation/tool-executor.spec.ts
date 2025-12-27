@@ -63,7 +63,6 @@ test('executeToolsDirectly - handles validation failure', async t => {
 		toolManager,
 		conversationStateManager as any,
 		addToChatQueue,
-		1,
 	);
 
 	t.is(results.length, 1);
@@ -211,7 +210,6 @@ test('executeToolsDirectly - returns empty array for no tools', async t => {
 		null,
 		conversationStateManager as any,
 		addToChatQueue,
-		1,
 	);
 
 	t.deepEqual(results, []);

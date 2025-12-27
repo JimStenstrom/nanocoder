@@ -22,6 +22,7 @@ import {ThemeContext} from '@/hooks/useTheme';
 import {useToolHandler} from '@/hooks/useToolHandler';
 import {UIStateProvider} from '@/hooks/useUIState';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
+import {initSession} from '@/session';
 import {
 	generateCorrelationId,
 	withNewCorrelationContext,
@@ -41,9 +42,14 @@ export default function App({
 	// Memoize the logger to prevent recreation on every render
 	const logger = useMemo(() => createPinoLogger(), []);
 
-	// Log application startup with key configuration
+	// Initialize session and log application startup
 	React.useEffect(() => {
+		// Initialize unified session service (foundation for issue #51)
+		const session = initSession();
+
 		logger.info('Nanocoder application starting', {
+			sessionId: session.id,
+			sessionName: session.name,
 			vscodeMode,
 			vscodePort,
 			nodeEnv: process.env.NODE_ENV || 'development',
@@ -184,7 +190,6 @@ export default function App({
 		currentModel: appState.currentModel,
 		setIsCancelling: appState.setIsCancelling,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
 		abortController: appState.abortController,
 		setAbortController: appState.setAbortController,
 		developmentMode: appState.developmentMode,
@@ -224,7 +229,6 @@ export default function App({
 		setIsToolExecuting: appState.setIsToolExecuting,
 		setMessages: appState.updateMessages,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
 		resetToolConfirmationState: appState.resetToolConfirmationState,
 		onProcessAssistantResponse: chatHandler.processAssistantResponse,
 		client: appState.client,
@@ -290,7 +294,6 @@ export default function App({
 		setPreferencesLoaded: appState.setPreferencesLoaded,
 		setCustomCommandsCount: appState.setCustomCommandsCount,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
 		customCommandCache: appState.customCommandCache,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 	});
@@ -312,7 +315,6 @@ export default function App({
 		setIsModelDatabaseMode: appState.setIsModelDatabaseMode,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
 		reinitializeMCPServers: appInitialization.reinitializeMCPServers,
 	});
 
@@ -328,7 +330,6 @@ export default function App({
 		lspServersStatus: appState.lspServersStatus,
 		preferencesLoaded: appState.preferencesLoaded,
 		customCommandsCount: appState.customCommandsCount,
-		componentKeyCounter: appState.componentKeyCounter,
 		customCommandCache: appState.customCommandCache,
 		customCommandLoader: appState.customCommandLoader,
 		customCommandExecutor: appState.customCommandExecutor,

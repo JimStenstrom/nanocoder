@@ -12,6 +12,7 @@ import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {CheckpointManager} from '@/services/checkpoint-manager';
+import {generateKey} from '@/session';
 import type {
 	CheckpointListItem,
 	DevelopmentMode,
@@ -39,7 +40,6 @@ interface UseAppHandlersProps {
 	lspServersStatus: LSPConnectionStatus[];
 	preferencesLoaded: boolean;
 	customCommandsCount: number;
-	componentKeyCounter: number;
 	customCommandCache: Map<string, CustomCommand>;
 	customCommandLoader: CustomCommandLoader | null;
 	customCommandExecutor: CustomCommandExecutor | null;
@@ -153,12 +153,11 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 			currentProvider: props.currentProvider,
 			currentModel: props.currentModel,
 			currentTheme: props.currentTheme,
-			componentKeyCounter: props.componentKeyCounter,
 		});
 
 		props.addToChatQueue(
 			<Status
-				key={`status-${props.componentKeyCounter}`}
+				key={generateKey('status')}
 				provider={props.currentProvider}
 				model={props.currentModel}
 				theme={props.currentTheme}
@@ -188,7 +187,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 					} catch (error) {
 						addToMessageQueue(
 							<WarningMessage
-								key={`backup-warning-${Date.now()}`}
+								key={generateKey('backup-warning')}
 								message={`Warning: Failed to create backup: ${
 									error instanceof Error ? error.message : 'Unknown error'
 								}`}
@@ -206,7 +205,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 
 				addToMessageQueue(
 					<SuccessMessage
-						key={`restore-success-${Date.now()}`}
+						key={generateKey('restore-success')}
 						message={`✓ Checkpoint '${checkpointName}' restored successfully`}
 						hideBox={true}
 					/>,
@@ -214,7 +213,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 			} catch (error) {
 				addToMessageQueue(
 					<ErrorMessage
-						key={`restore-error-${Date.now()}`}
+						key={generateKey('restore-error')}
 						message={`Failed to restore checkpoint: ${
 							error instanceof Error ? error.message : 'Unknown error'
 						}`}
@@ -265,7 +264,6 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 				onHandleChatMessage: props.handleChatMessage,
 				onAddToChatQueue: props.addToChatQueue,
 				onCommandComplete: () => props.setIsConversationComplete(true),
-				componentKeyCounter: props.componentKeyCounter,
 				setMessages: props.updateMessages,
 				messages: props.messages,
 				setIsBashExecuting: props.setIsBashExecuting,

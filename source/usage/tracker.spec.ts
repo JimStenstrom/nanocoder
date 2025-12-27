@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import {resetSession} from '@/session';
 import type {Message} from '@/types/core.js';
 import type {Tokenizer} from '@/types/tokenization.js';
 import test from 'ava';
@@ -56,7 +57,8 @@ test.before(() => {
 test.beforeEach(() => {
 	const testDir = createTestDir();
 	process.env.XDG_CONFIG_HOME = testDir;
-	clearCurrentSession(); // Clear any lingering session from previous tests
+	resetSession(); // Reset unified session service for test isolation
+	clearCurrentSession(); // Clear any lingering session tracker from previous tests
 });
 
 test.afterEach(() => {
@@ -98,11 +100,25 @@ test('SessionTracker initializes with provider and model', t => {
 	t.truthy(info.startTime);
 });
 
-test('SessionTracker generates unique session IDs', t => {
+test('SessionTracker uses shared session ID within same session', t => {
+	// All trackers within the same session share the session ID
 	const tracker1 = new SessionTracker('openai', 'gpt-4');
 	const tracker2 = new SessionTracker('anthropic', 'claude');
 
 	const info1 = tracker1.getSessionInfo();
+	const info2 = tracker2.getSessionInfo();
+
+	t.is(info1.id, info2.id);
+});
+
+test('SessionTracker gets new session ID after session reset', t => {
+	const tracker1 = new SessionTracker('openai', 'gpt-4');
+	const info1 = tracker1.getSessionInfo();
+
+	// Reset the session service
+	resetSession();
+
+	const tracker2 = new SessionTracker('anthropic', 'claude');
 	const info2 = tracker2.getSessionInfo();
 
 	t.not(info1.id, info2.id);
@@ -350,7 +366,7 @@ test('clearCurrentSession is idempotent', t => {
 	t.is(session, null);
 });
 
-test('initializeSession replaces existing session', t => {
+test('initializeSession replaces existing session tracker', t => {
 	initializeSession('openai', 'gpt-4');
 	const session1 = getCurrentSession();
 	const info1 = session1!.getSessionInfo();
@@ -358,6 +374,23 @@ test('initializeSession replaces existing session', t => {
 	initializeSession('anthropic', 'claude-3-opus');
 	const session2 = getCurrentSession();
 	const info2 = session2!.getSessionInfo();
+
+	// Session ID is shared from unified session service, so stays the same
+	t.is(info1.id, info2.id);
+	// But tracker is replaced with new provider/model
+	t.is(info2.provider, 'anthropic');
+	t.is(info2.model, 'claude-3-opus');
+});
+
+test('initializeSession gets new ID after session reset', t => {
+	initializeSession('openai', 'gpt-4');
+	const info1 = getCurrentSession()!.getSessionInfo();
+
+	// Reset the unified session service to simulate new app session
+	resetSession();
+
+	initializeSession('anthropic', 'claude-3-opus');
+	const info2 = getCurrentSession()!.getSessionInfo();
 
 	t.not(info1.id, info2.id);
 	t.is(info2.provider, 'anthropic');

@@ -4,6 +4,7 @@ import {
 	TOKEN_THRESHOLD_WARNING_PERCENT,
 } from '@/constants';
 import {getModelContextLimit} from '@/models/index';
+import {generateKey} from '@/session';
 import {createTokenizer} from '@/tokenization/index';
 import type {Message} from '@/types/core';
 import type {Tokenizer} from '@/types/tokenization';
@@ -20,7 +21,6 @@ import type React from 'react';
  * @param currentProvider - Current LLM provider name
  * @param currentModel - Current model name
  * @param addToChatQueue - Callback to add warning message to chat
- * @param componentKeyCounter - Unique key for React component
  */
 export const checkContextUsage = async (
 	allMessages: Message[],
@@ -28,7 +28,6 @@ export const checkContextUsage = async (
 	currentProvider: string,
 	currentModel: string,
 	addToChatQueue: (component: React.ReactNode) => void,
-	componentKeyCounter: number,
 ): Promise<void> => {
 	const logger = getLogger();
 
@@ -70,7 +69,7 @@ export const checkContextUsage = async (
 		if (percentUsed >= TOKEN_THRESHOLD_CRITICAL_PERCENT) {
 			addToChatQueue(
 				<WarningMessage
-					key={`context-warning-${componentKeyCounter}`}
+					key={generateKey('context-warning')}
 					message={`Context ${Math.round(
 						percentUsed,
 					)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens). Consider using /clear to start fresh.`}
@@ -80,7 +79,7 @@ export const checkContextUsage = async (
 		} else if (percentUsed >= TOKEN_THRESHOLD_WARNING_PERCENT) {
 			addToChatQueue(
 				<WarningMessage
-					key={`context-warning-${componentKeyCounter}`}
+					key={generateKey('context-warning')}
 					message={`Context ${Math.round(
 						percentUsed,
 					)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens).`}

@@ -1,4 +1,5 @@
 import {ErrorMessage} from '@/components/message-box';
+import {generateKey} from '@/session';
 import {formatError} from '@/utils/error-formatter';
 import type React from 'react';
 
@@ -8,18 +9,16 @@ import type React from 'react';
  * @param error - The error to display
  * @param keyPrefix - Prefix for the React component key
  * @param addToChatQueue - Callback to add error message to chat
- * @param componentKeyCounter - Unique key counter for React components
  */
 export const displayError = (
 	error: unknown,
 	keyPrefix: string,
 	addToChatQueue: (component: React.ReactNode) => void,
-	componentKeyCounter: number,
 ): void => {
 	if (error instanceof Error && error.message === 'Operation was cancelled') {
 		addToChatQueue(
 			<ErrorMessage
-				key={`${keyPrefix}-${componentKeyCounter}`}
+				key={generateKey(keyPrefix)}
 				message="Interrupted by user."
 				hideBox={true}
 			/>,
@@ -27,7 +26,7 @@ export const displayError = (
 	} else {
 		addToChatQueue(
 			<ErrorMessage
-				key={`${keyPrefix}-${componentKeyCounter}`}
+				key={generateKey(keyPrefix)}
 				message={formatError(error)}
 				hideBox={true}
 			/>,

@@ -7,6 +7,7 @@ import {
 	TRUNCATION_RESULT_STRING_LENGTH,
 } from '@/constants';
 import {CheckpointManager} from '@/services/checkpoint-manager';
+import {generateKey} from '@/session';
 import {toolRegistry} from '@/tools/index';
 import type {LLMClient} from '@/types/core';
 import type {Message, MessageSubmissionOptions} from '@/types/index';
@@ -31,7 +32,6 @@ export async function handleMessageSubmission(
 		onHandleChatMessage,
 		onAddToChatQueue,
 		onCommandComplete,
-		componentKeyCounter,
 		setMessages,
 		messages,
 		setIsBashExecuting,
@@ -78,7 +78,7 @@ ${result.fullOutput || '(No output)'}`;
 			// Add the command and its output to the chat queue
 			onAddToChatQueue(
 				React.createElement(ToolMessage, {
-					key: `bash-result-${componentKeyCounter}`,
+					key: generateKey('bash-result'),
 					message: commandOutput,
 					hideBox: true,
 					isBashMode: true,
@@ -107,7 +107,7 @@ ${result.fullOutput || '(No output)'}`;
 				error instanceof Error ? error.message : String(error);
 			onAddToChatQueue(
 				React.createElement(ErrorMessage, {
-					key: `bash-error-${componentKeyCounter}`,
+					key: generateKey('bash-error'),
 					message: `Error executing command: ${errorMessage}`,
 				}),
 			);
@@ -201,7 +201,7 @@ ${result.fullOutput || '(No output)'}`;
 					if (checkpoints.length === 0) {
 						onAddToChatQueue(
 							React.createElement(InfoMessage, {
-								key: `checkpoint-info-${componentKeyCounter}`,
+								key: generateKey('checkpoint-info'),
 								message:
 									'No checkpoints available. Create one with /checkpoint create [name]',
 								hideBox: true,
@@ -215,7 +215,7 @@ ${result.fullOutput || '(No output)'}`;
 				} catch (error) {
 					onAddToChatQueue(
 						React.createElement(ErrorMessage, {
-							key: `checkpoint-error-${componentKeyCounter}`,
+							key: generateKey('checkpoint-error'),
 							message: `Failed to list checkpoints: ${
 								error instanceof Error ? error.message : 'Unknown error'
 							}`,
@@ -252,7 +252,7 @@ ${result.fullOutput || '(No output)'}`;
 					queueMicrotask(() => {
 						onAddToChatQueue(
 							React.createElement(InfoMessage, {
-								key: `command-result-${componentKeyCounter}`,
+								key: generateKey('command-result'),
 								message: result,
 								hideBox: true,
 							}),

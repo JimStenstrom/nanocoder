@@ -1,5 +1,6 @@
 import {ErrorMessage} from '@/components/message-box';
 import ToolMessage from '@/components/tool-message';
+import {generateKey} from '@/session';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {ToolCall, ToolResult} from '@/types/index';
 import {parseToolArguments} from '@/utils/tool-args-parser';
@@ -13,14 +14,12 @@ import React from 'react';
  * @param result - The result from tool execution
  * @param toolManager - The tool manager instance (for formatters)
  * @param addToChatQueue - Function to add components to chat queue
- * @param componentKeyCounter - Counter for generating unique React keys
  */
 export async function displayToolResult(
 	toolCall: ToolCall,
 	result: ToolResult,
 	toolManager: ToolManager | null,
 	addToChatQueue: (component: React.ReactNode) => void,
-	componentKeyCounter: number,
 ): Promise<void> {
 	// Check if this is an error result
 	const isError = result.content.startsWith('Error: ');
@@ -30,9 +29,7 @@ export async function displayToolResult(
 		const errorMessage = result.content.replace(/^Error: /, '');
 		addToChatQueue(
 			<ErrorMessage
-				key={`tool-error-${
-					result.tool_call_id
-				}-${componentKeyCounter}-${Date.now()}`}
+				key={generateKey('tool-error')}
 				message={errorMessage}
 				hideBox={true}
 			/>,
@@ -50,17 +47,13 @@ export async function displayToolResult(
 				if (React.isValidElement(formattedResult)) {
 					addToChatQueue(
 						React.cloneElement(formattedResult, {
-							key: `tool-result-${
-								result.tool_call_id
-							}-${componentKeyCounter}-${Date.now()}`,
+							key: generateKey('tool-result'),
 						}),
 					);
 				} else {
 					addToChatQueue(
 						<ToolMessage
-							key={`tool-result-${
-								result.tool_call_id
-							}-${componentKeyCounter}-${Date.now()}`}
+							key={generateKey('tool-result')}
 							title={`⚒ ${result.name}`}
 							message={String(formattedResult)}
 							hideBox={true}
@@ -71,7 +64,7 @@ export async function displayToolResult(
 				// If formatter fails, show raw result
 				addToChatQueue(
 					<ToolMessage
-						key={`tool-result-${result.tool_call_id}-${componentKeyCounter}`}
+						key={generateKey('tool-result')}
 						title={`⚒ ${result.name}`}
 						message={result.content}
 						hideBox={true}
@@ -82,7 +75,7 @@ export async function displayToolResult(
 			// No formatter, show raw result
 			addToChatQueue(
 				<ToolMessage
-					key={`tool-result-${result.tool_call_id}-${componentKeyCounter}`}
+					key={generateKey('tool-result')}
 					title={`⚒ ${result.name}`}
 					message={result.content}
 					hideBox={true}

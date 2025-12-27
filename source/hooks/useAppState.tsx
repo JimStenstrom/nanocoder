@@ -2,6 +2,7 @@ import {loadPreferences} from '@/config/preferences';
 import {defaultTheme} from '@/config/themes';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
+import {generateKey} from '@/session';
 import {createTokenizer} from '@/tokenization/index.js';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CheckpointListItem} from '@/types/checkpoint';
@@ -128,28 +129,19 @@ export function useAppState() {
 
 	// Chat queue for components
 	const [chatComponents, setChatComponents] = useState<React.ReactNode[]>([]);
-	const [componentKeyCounter, setComponentKeyCounter] = useState(0);
 
 	// Helper function to add components to the chat queue with stable keys
-	const addToChatQueue = useCallback(
-		(component: React.ReactNode) => {
-			const newCounter = componentKeyCounter + 1;
-			setComponentKeyCounter(newCounter);
+	// Uses unified session service for key generation (issue #229)
+	const addToChatQueue = useCallback((component: React.ReactNode) => {
+		let componentWithKey = component;
+		if (React.isValidElement(component) && !component.key) {
+			componentWithKey = React.cloneElement(component, {
+				key: generateKey('chat-component'),
+			});
+		}
 
-			let componentWithKey = component;
-			if (React.isValidElement(component) && !component.key) {
-				componentWithKey = React.cloneElement(component, {
-					key: `chat-component-${newCounter}`,
-				});
-			}
-
-			setChatComponents(prevComponents => [
-				...prevComponents,
-				componentWithKey,
-			]);
-		},
-		[componentKeyCounter],
-	);
+		setChatComponents(prevComponents => [...prevComponents, componentWithKey]);
+	}, []);
 
 	// Create tokenizer based on current provider and model
 	const tokenizer = useMemo<Tokenizer>(() => {
@@ -258,7 +250,6 @@ export function useAppState() {
 		completedToolResults,
 		currentConversationContext,
 		chatComponents,
-		componentKeyCounter,
 		tokenizer,
 
 		// Setters
@@ -300,7 +291,6 @@ export function useAppState() {
 		setCompletedToolResults,
 		setCurrentConversationContext,
 		setChatComponents,
-		setComponentKeyCounter,
 
 		// Utilities
 		addToChatQueue,
