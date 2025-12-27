@@ -4,6 +4,7 @@ import React from 'react';
 import type {CheckpointListItem} from './checkpoint';
 import type {CustomCommand} from './commands';
 import type {Message} from './core';
+import type {Tokenizer} from './tokenization';
 import type {UpdateInfo} from './utils';
 
 export interface MessageSubmissionOptions {
@@ -33,4 +34,5 @@ export interface MessageSubmissionOptions {
 	theme: string;
 	updateInfo: UpdateInfo | null;
 	getMessageTokens: (message: Message) => number;
+	tokenizer: Tokenizer;
 }

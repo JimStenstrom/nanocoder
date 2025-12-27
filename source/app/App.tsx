@@ -23,6 +23,7 @@ import {useToolHandler} from '@/hooks/useToolHandler';
 import {UIStateProvider} from '@/hooks/useUIState';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 import {initSession} from '@/session';
+import {clearCurrentSession, getCurrentSession} from '@/usage/tracker';
 import {
 	generateCorrelationId,
 	withNewCorrelationContext,
@@ -82,6 +83,12 @@ export default function App({
 		React.useState(false);
 
 	const handleExit = () => {
+		// Save session usage before exit
+		const usageSession = getCurrentSession();
+		if (usageSession) {
+			usageSession.saveSession(appState.messages, appState.tokenizer);
+			clearCurrentSession();
+		}
 		exit();
 	};
 
@@ -344,6 +351,7 @@ export default function App({
 		addToChatQueue: appState.addToChatQueue,
 		client: appState.client,
 		getMessageTokens: appState.getMessageTokens,
+		tokenizer: appState.tokenizer,
 		enterModelSelectionMode: modeHandlers.enterModelSelectionMode,
 		enterProviderSelectionMode: modeHandlers.enterProviderSelectionMode,
 		enterThemeSelectionMode: modeHandlers.enterThemeSelectionMode,

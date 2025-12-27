@@ -1,5 +1,6 @@
 import {ErrorMessage} from '@/components/message-box';
 import type {Command, Message} from '@/types/index';
+import type {Tokenizer} from '@/types/tokenization';
 import {fuzzyScore} from '@/utils/fuzzy-matching';
 import React from 'react';
 
@@ -57,6 +58,7 @@ class CommandRegistry {
 			model: string;
 			tokens: number;
 			getMessageTokens: (message: Message) => number;
+			tokenizer: Tokenizer;
 		},
 	): Promise<void | string | React.ReactNode> {
 		const parts = input.trim().split(/\s+/);

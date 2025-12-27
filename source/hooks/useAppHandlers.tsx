@@ -20,6 +20,7 @@ import type {
 	LSPConnectionStatus,
 	MCPConnectionStatus,
 	Message,
+	Tokenizer,
 } from '@/types';
 import type {CustomCommand} from '@/types/commands';
 import type {ThemePreset} from '@/types/ui';
@@ -65,6 +66,7 @@ interface UseAppHandlersProps {
 	addToChatQueue: (component: React.ReactNode) => void;
 	client: LLMClient | null;
 	getMessageTokens: (message: Message) => number;
+	tokenizer: Tokenizer;
 
 	// Mode handlers
 	enterModelSelectionMode: () => void;
@@ -273,6 +275,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 				theme: props.currentTheme,
 				updateInfo: props.updateInfo,
 				getMessageTokens: props.getMessageTokens,
+				tokenizer: props.tokenizer,
 			});
 		},
 		[props, clearMessages, enterCheckpointLoadMode, handleShowStatus],

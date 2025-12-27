@@ -40,6 +40,7 @@ import {
 } from '@/types/core';
 import type {MCPInitResult, UserPreferences} from '@/types/index';
 import type {UpdateInfo} from '@/types/index';
+import {initializeSession as initializeUsageSession} from '@/usage/tracker';
 import {checkForUpdates} from '@/utils/update-checker';
 import React, {useEffect} from 'react';
 
@@ -108,6 +109,9 @@ export function useAppInitialization({
 
 		// Save the preference - use actualProvider and the model that was actually set
 		updateLastUsed(actualProvider, finalModel);
+
+		// Initialize usage tracking session
+		initializeUsageSession(actualProvider, finalModel);
 	};
 
 	// Load and cache custom commands

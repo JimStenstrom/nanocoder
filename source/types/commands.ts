@@ -1,4 +1,5 @@
 import {Message} from '@/types/core';
+import type {Tokenizer} from '@/types/tokenization';
 
 export interface Command<T = React.ReactElement> {
 	name: string;
@@ -11,6 +12,7 @@ export interface Command<T = React.ReactElement> {
 			model: string;
 			tokens: number;
 			getMessageTokens: (message: Message) => number;
+			tokenizer: Tokenizer;
 		},
 	) => Promise<T>;
 }

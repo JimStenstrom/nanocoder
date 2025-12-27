@@ -10,6 +10,7 @@ import {getToolManager} from '@/message-handler';
 import {generateKey} from '@/session';
 import {LLMClient, Message} from '@/types/core';
 import type {ThemePreset} from '@/types/ui';
+import {getCurrentSession} from '@/usage/tracker';
 import React from 'react';
 
 interface UseModeHandlersProps {
@@ -74,6 +75,9 @@ export function useModeHandlers({
 			// Update preferences
 			updateLastUsed(currentProvider, selectedModel);
 
+			// Update usage tracker with new model
+			getCurrentSession()?.updateProviderModel(currentProvider, selectedModel);
+
 			// Add success message to chat queue
 			addToChatQueue(
 				<SuccessMessage
@@ -125,6 +129,9 @@ export function useModeHandlers({
 
 				// Update preferences - use the actualProvider (which is what was successfully created)
 				updateLastUsed(actualProvider, newModel);
+
+				// Update usage tracker with new provider/model
+				getCurrentSession()?.updateProviderModel(actualProvider, newModel);
 
 				// Add success message to chat queue
 				addToChatQueue(
@@ -231,6 +238,9 @@ export function useModeHandlers({
 				// Clear message history when switching providers
 				setMessages([]);
 				await newClient.clearContext();
+
+				// Update usage tracker with new provider/model
+				getCurrentSession()?.updateProviderModel(actualProvider, newModel);
 
 				// Reinitialize MCP servers with the new configuration
 				const toolManager = getToolManager();

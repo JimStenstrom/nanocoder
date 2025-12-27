@@ -1,11 +1,19 @@
 import {InfoMessage} from '@/components/message-box';
 import {Command} from '@/types/index';
+import {clearCurrentSession, getCurrentSession} from '@/usage/tracker';
 import React from 'react';
 
 export const exitCommand: Command = {
 	name: 'exit',
 	description: 'Exit the application',
-	handler: (_args: string[], _messages, _metadata) => {
+	handler: (_args: string[], messages, metadata) => {
+		// Save session usage before exit
+		const usageSession = getCurrentSession();
+		if (usageSession && metadata?.tokenizer) {
+			usageSession.saveSession(messages, metadata.tokenizer);
+			clearCurrentSession();
+		}
+
 		// Return InfoMessage component first, then exit after a short delay
 		setTimeout(() => {
 			process.exit(0);
