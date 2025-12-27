@@ -2,27 +2,15 @@
  * Environment-based configuration for Pino logger
  */
 
-import {platform} from 'os';
-import {homedir} from 'os';
-import {join} from 'path';
+import {getLogsDir} from '@/config/paths';
 import type {EnhancedLoggerConfig, LogLevel, LoggerConfig} from './types.js';
 
 /**
  * Get the default log directory based on platform
+ * Now uses unified path from paths.ts (Issue #230)
  */
 export function getDefaultLogDirectory(): string {
-	if (process.env.NANOCODER_LOG_DIR) {
-		return process.env.NANOCODER_LOG_DIR;
-	}
-
-	switch (platform()) {
-		case 'win32':
-			return join(process.env.APPDATA || homedir(), 'nanocoder', 'logs');
-		case 'darwin':
-			return join(homedir(), 'Library', 'Preferences', 'nanocoder', 'logs');
-		default: // linux
-			return join(homedir(), '.config', 'nanocoder', 'logs');
-	}
+	return getLogsDir();
 }
 
 /**

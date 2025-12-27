@@ -1,4 +1,8 @@
-import {getClosestConfigFile} from '@/config/index';
+import {existsSync, mkdirSync} from 'fs';
+import * as nodePath from 'node:path';
+import {homedir} from 'os';
+import {migrateFile} from '@/config/migration';
+import {getDataDir} from '@/config/paths';
 import {MAX_PROMPT_HISTORY_SIZE} from '@/constants';
 import {logError} from '@/utils/message-queue';
 import fs from 'fs/promises';
@@ -6,6 +10,57 @@ import type {InputState} from './types/hooks';
 
 const ENTRY_SEPARATOR = '\n---ENTRY_SEPARATOR---\n';
 const JSON_FORMAT_MARKER = '---JSON_FORMAT---';
+const HISTORY_FILE_NAME = 'history';
+
+/**
+ * Get legacy history file paths.
+ * Returns paths in priority order (most likely to least likely).
+ */
+function getLegacyHistoryPaths(): string[] {
+	const home = homedir();
+	const oldFileName = '.nano-coder-history';
+	const paths: string[] = [];
+
+	switch (process.platform) {
+		case 'darwin':
+			paths.push(
+				nodePath.join(home, 'Library', 'Preferences', 'nanocoder', oldFileName),
+			);
+			break;
+		case 'win32':
+			if (process.env.APPDATA) {
+				paths.push(
+					nodePath.join(process.env.APPDATA, 'nanocoder', oldFileName),
+				);
+			}
+			break;
+		default:
+			// Linux
+			paths.push(nodePath.join(home, '.config', 'nanocoder', oldFileName));
+	}
+
+	// Also check home directory hidden file
+	paths.push(nodePath.join(home, oldFileName));
+
+	return paths;
+}
+
+function getDefaultHistoryPath(): string {
+	const newPath = nodePath.join(getDataDir(), HISTORY_FILE_NAME);
+
+	// Lazy migration from legacy locations
+	const legacyPaths = getLegacyHistoryPaths();
+	migrateFile(legacyPaths, newPath);
+
+	return newPath;
+}
+
+function ensureDataDir(): void {
+	const dataDir = getDataDir();
+	if (!existsSync(dataDir)) {
+		mkdirSync(dataDir, {recursive: true});
+	}
+}
 
 export class PromptHistory {
 	private history: InputState[] = [];
@@ -14,8 +69,7 @@ export class PromptHistory {
 	private savePromise: Promise<void> = Promise.resolve();
 
 	constructor(historyFile?: string) {
-		this.historyFile =
-			historyFile ?? getClosestConfigFile('.nano-coder-history');
+		this.historyFile = historyFile ?? getDefaultHistoryPath();
 	}
 
 	async loadHistory(): Promise<void> {
@@ -60,6 +114,7 @@ export class PromptHistory {
 		// Chain this save onto the previous save to prevent concurrent writes
 		this.savePromise = this.savePromise.then(async () => {
 			try {
+				ensureDataDir();
 				const jsonContent = JSON.stringify(this.history, null, 2);
 				await fs.writeFile(
 					this.historyFile,

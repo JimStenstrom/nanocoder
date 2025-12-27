@@ -2,10 +2,87 @@
  * Transport configuration for different output destinations
  */
 
+import * as fs from 'node:fs';
+import {homedir} from 'os';
 import {join} from 'path';
 import {BUFFER_LOG_BYTES, INTERVAL_LOG_FLUSH_MS} from '@/constants';
 import {getDefaultLogDirectory} from './config.js';
 import type {TransportConfig} from './types.js';
+
+// Track if we've already migrated logs this session
+let logsMigrated = false;
+
+/**
+ * Migrate log files from legacy locations to new location.
+ * Uses standalone implementation to avoid circular dependency with logger.
+ */
+function migrateLogsIfNeeded(newLogsDir: string): void {
+	if (logsMigrated) return;
+	logsMigrated = true;
+
+	const home = homedir();
+	const legacyLogDirs = [
+		join(home, 'Library', 'Preferences', 'nanocoder', 'logs'), // Old macOS
+		// Note: Old Linux logs were already in ~/.config/nanocoder/logs
+	];
+
+	for (const legacyDir of legacyLogDirs) {
+		if (!legacyDir || !fs.existsSync(legacyDir)) continue;
+		if (legacyDir === newLogsDir) continue; // Don't migrate to same location
+
+		try {
+			const files = fs.readdirSync(legacyDir);
+			if (files.length === 0) continue;
+
+			// Ensure new directory exists
+			if (!fs.existsSync(newLogsDir)) {
+				fs.mkdirSync(newLogsDir, {recursive: true});
+			}
+
+			for (const file of files) {
+				if (!file.endsWith('.log')) continue;
+
+				const oldPath = join(legacyDir, file);
+				const newPath = join(newLogsDir, file);
+
+				// Skip if already exists in new location
+				if (fs.existsSync(newPath)) continue;
+
+				try {
+					if (fs.statSync(oldPath).isFile()) {
+						try {
+							fs.renameSync(oldPath, newPath);
+						} catch {
+							// Cross-device fallback
+							fs.copyFileSync(oldPath, newPath);
+							fs.unlinkSync(oldPath);
+						}
+					}
+				} catch {
+					// Ignore individual file errors
+				}
+			}
+
+			// Try to clean up empty legacy directory
+			try {
+				const remaining = fs.readdirSync(legacyDir);
+				if (remaining.length === 0) {
+					fs.rmdirSync(legacyDir);
+					// Also try to clean parent if empty
+					const parent = join(legacyDir, '..');
+					const parentRemaining = fs.readdirSync(parent);
+					if (parentRemaining.length === 0) {
+						fs.rmdirSync(parent);
+					}
+				}
+			} catch {
+				// Ignore cleanup errors
+			}
+		} catch {
+			// Ignore directory-level errors
+		}
+	}
+}
 
 // Type definition for Pino transport target
 type TransportTarget = {
@@ -46,6 +123,9 @@ export function createDevelopmentTransport(): TransportTarget {
 export function createProductionTransport(
 	logDir: string = getDefaultLogDirectory(),
 ): TransportTarget {
+	// Migrate logs from legacy locations (Issue #230)
+	migrateLogsIfNeeded(logDir);
+
 	return {
 		target: 'pino-roll',
 		level: 'info',
