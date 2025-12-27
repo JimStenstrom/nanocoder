@@ -1,8 +1,8 @@
 import test from 'ava';
 import React from 'react';
 import {renderWithTheme} from '../../test-utils/render-with-theme';
-import {createStaticComponents} from './AppContainer';
-import type {AppContainerProps} from './AppContainer';
+import {createStaticComponents} from './app-container';
+import type {AppContainerProps} from './app-container';
 
 test('createStaticComponents includes welcome message when shouldShowWelcome is true', t => {
 	const props: AppContainerProps = {

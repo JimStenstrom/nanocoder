@@ -1,8 +1,8 @@
 import test from 'ava';
 import React from 'react';
 import {renderWithTheme} from '../../test-utils/render-with-theme';
-import {ModalSelectors} from './ModalSelectors';
-import type {ModalSelectorsProps} from './ModalSelectors';
+import {ModalSelectors} from './modal-selectors';
+import type {ModalSelectorsProps} from './modal-selectors';
 
 // Helper to create default props
 function createDefaultProps(
