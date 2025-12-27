@@ -3,7 +3,8 @@ import {homedir} from 'os';
 import {dirname, join} from 'path';
 import {fileURLToPath} from 'url';
 import {substituteEnvVars} from '@/config/env-substitution';
-import {getConfigPath} from '@/config/paths';
+import {getLegacyConfigPaths, migrateFile} from '@/config/migration';
+import {getConfigDir} from '@/config/paths';
 import {loadPreferences} from '@/config/preferences';
 import {defaultTheme, getThemeColors} from '@/config/themes';
 import type {AppConfig, Colors} from '@/types/index';
@@ -29,7 +30,7 @@ export const confDirMap: Record<string, string> = {};
 // Find the closest config file for the requested configuration file
 export function getClosestConfigFile(fileName: string): string {
 	try {
-		const configDir = getConfigPath();
+		const configDir = getConfigDir();
 
 		// If NANOCODER_CONFIG_DIR is explicitly set, skip cwd and home checks
 		// and use only the config directory (important for tests and explicit overrides)
@@ -57,9 +58,13 @@ export function getClosestConfigFile(fileName: string): string {
 		}
 
 		// Last, lets look for an user level config.
+		const configPath = join(configDir, fileName); // nosemgrep
+
+		// Lazy migration from legacy locations (Issue #230)
+		const legacyPaths = getLegacyConfigPaths(fileName);
+		migrateFile(legacyPaths, configPath);
 
 		// If the file doesn't exist, create it
-		const configPath = join(configDir, fileName); // nosemgrep
 		if (!existsSync(configPath)) {
 			// nosemgrep
 			createDefaultConfFile(configDir, fileName);

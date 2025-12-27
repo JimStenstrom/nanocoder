@@ -1,29 +1,28 @@
 /**
  * Cache management for models.dev data
- * Stores model database in XDG_CACHE_HOME for fast lookup
+ * Stores model database in cache directory for fast lookup
  */
 
 import {constants} from 'node:fs';
 import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
 import * as path from 'node:path';
+import {getLegacyCachePaths, migrateFile} from '@/config/migration';
+import {getCacheDir} from '@/config/paths';
 import {CACHE_MODELS_EXPIRATION_MS} from '@/constants';
 import {formatError} from '@/utils/error-formatter';
 import {getLogger} from '@/utils/logging';
-import {xdgCache} from 'xdg-basedir';
 import type {CachedModelsData, ModelsDevDatabase} from './models-types.js';
 
-const DEFAULT_CACHE_DIR =
-	process.platform === 'darwin'
-		? path.join(process.env.HOME || '~', 'Library', 'Caches')
-		: path.join(process.env.HOME || '~', '.cache');
-
-function getCacheDir(): string {
-	const cacheBase = xdgCache || DEFAULT_CACHE_DIR;
-	return path.join(cacheBase, 'nanocoder');
-}
+const CACHE_FILE_NAME = 'models.json';
 
 function getCacheFilePath(): string {
-	return path.join(getCacheDir(), 'models.json');
+	const newPath = path.join(getCacheDir(), CACHE_FILE_NAME);
+
+	// Lazy migration from legacy locations
+	const legacyPaths = getLegacyCachePaths(CACHE_FILE_NAME);
+	migrateFile(legacyPaths, newPath);
+
+	return newPath;
 }
 
 async function ensureCacheDir(): Promise<void> {
