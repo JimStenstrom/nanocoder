@@ -47,7 +47,7 @@ async function handleBashCommand(
 	const {
 		onAddToChatQueue,
 		onCommandComplete,
-		componentKeyCounter,
+		getNextComponentKey,
 		setMessages,
 		messages,
 		setIsBashExecuting,
@@ -89,7 +89,7 @@ ${result.fullOutput || '(No output)'}`;
 		// Add the command and its output to the chat queue
 		onAddToChatQueue(
 			React.createElement(ToolMessage, {
-				key: `bash-result-${componentKeyCounter}`,
+				key: `bash-result-${getNextComponentKey()}`,
 				message: commandOutput,
 				hideBox: true,
 				isBashMode: true,
@@ -108,7 +108,7 @@ ${result.fullOutput || '(No output)'}`;
 		// Show error message if command fails
 		onAddToChatQueue(
 			React.createElement(ErrorMessage, {
-				key: `bash-error-${componentKeyCounter}`,
+				key: `bash-error-${getNextComponentKey()}`,
 				message: `Error executing command: ${getErrorMessage(error, String(error))}`,
 			}),
 		);
@@ -241,7 +241,7 @@ async function handleCheckpointLoad(
 		onAddToChatQueue,
 		onEnterCheckpointLoadMode,
 		onCommandComplete,
-		componentKeyCounter,
+		getNextComponentKey,
 		messages,
 	} = options;
 
@@ -263,7 +263,7 @@ async function handleCheckpointLoad(
 		if (checkpoints.length === 0) {
 			onAddToChatQueue(
 				React.createElement(InfoMessage, {
-					key: `checkpoint-info-${componentKeyCounter}`,
+					key: `checkpoint-info-${getNextComponentKey()}`,
 					message:
 						'No checkpoints available. Create one with /checkpoint create [name]',
 					hideBox: true,
@@ -278,7 +278,7 @@ async function handleCheckpointLoad(
 	} catch (error) {
 		onAddToChatQueue(
 			React.createElement(ErrorMessage, {
-				key: `checkpoint-error-${componentKeyCounter}`,
+				key: `checkpoint-error-${getNextComponentKey()}`,
 				message: `Failed to list checkpoints: ${getErrorMessage(error)}`,
 				hideBox: true,
 			}),
@@ -295,7 +295,7 @@ async function handleBuiltInCommand(
 	message: string,
 	options: MessageSubmissionOptions,
 ): Promise<void> {
-	const {onAddToChatQueue, onCommandComplete, componentKeyCounter, messages} =
+	const {onAddToChatQueue, onCommandComplete, getNextComponentKey, messages} =
 		options;
 
 	const totalTokens = messages.reduce(
@@ -333,7 +333,7 @@ async function handleBuiltInCommand(
 		queueMicrotask(() => {
 			onAddToChatQueue(
 				React.createElement(InfoMessage, {
-					key: `command-result-${componentKeyCounter}`,
+					key: `command-result-${getNextComponentKey()}`,
 					message: result,
 					hideBox: true,
 				}),

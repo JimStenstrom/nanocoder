@@ -29,7 +29,7 @@ interface UseToolHandlerProps {
 	setIsToolExecuting: (executing: boolean) => void;
 	setMessages: (messages: Message[]) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
+	getNextComponentKey: () => number;
 	resetToolConfirmationState: () => void;
 	onProcessAssistantResponse: (
 		systemMessage: Message,
@@ -53,7 +53,7 @@ export function useToolHandler({
 	setIsToolExecuting,
 	setMessages,
 	addToChatQueue,
-	componentKeyCounter,
+	getNextComponentKey,
 	resetToolConfirmationState,
 	onProcessAssistantResponse,
 	client: _client,
@@ -100,7 +100,7 @@ export function useToolHandler({
 			// User cancelled - show message
 			addToChatQueue(
 				<InfoMessage
-					key={`tool-cancelled-${componentKeyCounter}`}
+					key={`tool-cancelled-${getNextComponentKey()}`}
 					message="Tool execution cancelled by user"
 					hideBox={true}
 				/>,
@@ -150,7 +150,7 @@ export function useToolHandler({
 			if (mcpInfo.isMCPTool) {
 				addToChatQueue(
 					<InfoMessage
-						key={`mcp-tool-executing-${componentKeyCounter}-${Date.now()}`}
+						key={`mcp-tool-executing-${getNextComponentKey()}-${Date.now()}`}
 						message={`Executing MCP tool "${currentTool.function.name}" from server "${mcpInfo.serverName}"`}
 						hideBox={true}
 					/>,
@@ -179,7 +179,7 @@ export function useToolHandler({
 						// Display the error
 						addToChatQueue(
 							<ErrorMessage
-								key={`tool-validation-error-${componentKeyCounter}-${Date.now()}`}
+								key={`tool-validation-error-${getNextComponentKey()}-${Date.now()}`}
 								message={validationResult.error}
 								hideBox={true}
 							/>,
@@ -216,7 +216,7 @@ export function useToolHandler({
 
 					addToChatQueue(
 						<ErrorMessage
-							key={`tool-validation-error-${componentKeyCounter}-${Date.now()}`}
+							key={`tool-validation-error-${getNextComponentKey()}-${Date.now()}`}
 							message={`Validation error: ${String(validationError)}`}
 							hideBox={true}
 						/>,
@@ -251,7 +251,7 @@ export function useToolHandler({
 
 				addToChatQueue(
 					<InfoMessage
-						key={`mode-switched-${componentKeyCounter}-${Date.now()}`}
+						key={`mode-switched-${getNextComponentKey()}-${Date.now()}`}
 						message={`Development mode switched to: ${requestedMode.toUpperCase()}`}
 						hideBox={true}
 					/>,
@@ -269,7 +269,7 @@ export function useToolHandler({
 				result,
 				toolManager,
 				addToChatQueue,
-				componentKeyCounter,
+				getNextComponentKey,
 			);
 
 			// Move to next tool or complete the process
@@ -287,7 +287,7 @@ export function useToolHandler({
 			setIsToolExecuting(false);
 			addToChatQueue(
 				<ErrorMessage
-					key={`tool-exec-error-${componentKeyCounter}`}
+					key={`tool-exec-error-${getNextComponentKey()}`}
 					message={`Tool execution error: ${String(error)}`}
 				/>,
 			);
@@ -305,7 +305,7 @@ export function useToolHandler({
 
 		addToChatQueue(
 			<InfoMessage
-				key={`tool-cancelled-${componentKeyCounter}`}
+				key={`tool-cancelled-${getNextComponentKey()}`}
 				message="Tool execution cancelled by user"
 				hideBox={true}
 			/>,
