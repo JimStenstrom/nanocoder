@@ -9,6 +9,7 @@ import {getModelContextLimit} from '@/models/index';
 import {getSessionId} from '@/session';
 import type {Message} from '@/types/core';
 import type {Tokenizer} from '@/types/tokenization';
+import {getLogger} from '@/utils/logging';
 import type {CurrentSessionStats, SessionUsage} from '../types/usage';
 import {calculateTokenBreakdown} from './calculator';
 import {addSession} from './storage';
@@ -20,11 +21,18 @@ export class SessionTracker {
 	private model: string;
 
 	constructor(provider: string, model: string) {
+		const logger = getLogger();
 		// Use shared session ID from unified session service
 		this.sessionId = getSessionId();
 		this.startTime = Date.now();
 		this.provider = provider;
 		this.model = model;
+
+		logger.debug('SessionTracker created', {
+			sessionId: this.sessionId,
+			provider,
+			model,
+		});
 	}
 
 	async getCurrentStats(
@@ -66,6 +74,14 @@ export class SessionTracker {
 	}
 
 	updateProviderModel(provider: string, model: string): void {
+		const logger = getLogger();
+		logger.debug('SessionTracker provider/model updated', {
+			sessionId: this.sessionId,
+			previousProvider: this.provider,
+			previousModel: this.model,
+			newProvider: provider,
+			newModel: model,
+		});
 		this.provider = provider;
 		this.model = model;
 	}
@@ -88,6 +104,8 @@ export class SessionTracker {
 let currentSessionTracker: SessionTracker | null = null;
 
 export function initializeSession(provider: string, model: string): void {
+	const logger = getLogger();
+	logger.debug('Usage session initializing', {provider, model});
 	currentSessionTracker = new SessionTracker(provider, model);
 }
 
@@ -96,5 +114,9 @@ export function getCurrentSession(): SessionTracker | null {
 }
 
 export function clearCurrentSession(): void {
+	const logger = getLogger();
+	logger.debug('Usage session cleared', {
+		previousSessionId: currentSessionTracker?.getSessionInfo().id,
+	});
 	currentSessionTracker = null;
 }

@@ -21,6 +21,7 @@
  * ```
  */
 
+import {getLogger} from '@/utils/logging';
 import type {InitSessionOptions, Session} from './types';
 
 export type {InitSessionOptions, Session} from './types';
@@ -46,6 +47,9 @@ let keyCounter = 0;
  * ```
  */
 export function initSession(options?: InitSessionOptions): Session {
+	const logger = getLogger();
+	const previousSessionId = currentSession?.id;
+
 	currentSession = {
 		id: options?.id ?? crypto.randomUUID().slice(0, 8),
 		createdAt: Date.now(),
@@ -53,6 +57,15 @@ export function initSession(options?: InitSessionOptions): Session {
 		workingDirectory: process.cwd(),
 	};
 	keyCounter = 0;
+
+	logger.debug('Session initialized', {
+		sessionId: currentSession.id,
+		sessionName: currentSession.name,
+		workingDirectory: currentSession.workingDirectory,
+		isRestore: !!options?.id,
+		previousSessionId,
+	});
+
 	return currentSession;
 }
 
@@ -63,6 +76,8 @@ export function initSession(options?: InitSessionOptions): Session {
  */
 export function getSession(): Session {
 	if (!currentSession) {
+		const logger = getLogger();
+		logger.debug('Session auto-initialized (was null)');
 		initSession();
 	}
 	return currentSession!;
@@ -101,6 +116,11 @@ export function generateKey(prefix: string): string {
  * This clears the current session and resets the key counter.
  */
 export function resetSession(): void {
+	const logger = getLogger();
+	logger.debug('Session reset', {
+		previousSessionId: currentSession?.id,
+		previousKeyCounter: keyCounter,
+	});
 	currentSession = null;
 	keyCounter = 0;
 }
