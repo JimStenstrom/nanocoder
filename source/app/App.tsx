@@ -83,11 +83,26 @@ export default function App({
 		React.useState(false);
 
 	const handleExit = () => {
+		logger.debug('handleExit called (SecurityDisclaimer exit path)', {
+			messageCount: appState.messages.length,
+		});
+
 		// Save session usage before exit
 		const usageSession = getCurrentSession();
 		if (usageSession) {
-			usageSession.saveSession(appState.messages, appState.tokenizer);
-			clearCurrentSession();
+			try {
+				usageSession.saveSession(appState.messages, appState.tokenizer);
+				clearCurrentSession();
+			} catch (error) {
+				logger.error('Failed to save session on exit', {
+					error: error instanceof Error ? error.message : String(error),
+					messageCount: appState.messages.length,
+				});
+				// Still clear to avoid memory leak
+				clearCurrentSession();
+			}
+		} else {
+			logger.debug('No usage session to save on exit');
 		}
 		exit();
 	};
