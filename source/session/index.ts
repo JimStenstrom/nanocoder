@@ -108,7 +108,14 @@ export function getSessionId(): string {
  * ```
  */
 export function generateKey(prefix: string): string {
-	return `${getSessionId()}-${prefix}-${++keyCounter}`;
+	const logger = getLogger();
+	const key = `${getSessionId()}-${prefix}-${++keyCounter}`;
+	logger.debug('Key generated', {
+		key,
+		prefix,
+		counter: keyCounter,
+	});
+	return key;
 }
 
 /**

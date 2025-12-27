@@ -57,6 +57,7 @@ export class SessionTracker {
 	}
 
 	saveSession(messages: Message[], tokenizer: Tokenizer): void {
+		const logger = getLogger();
 		const breakdown = calculateTokenBreakdown(messages, tokenizer);
 		const duration = Date.now() - this.startTime;
 
@@ -69,6 +70,13 @@ export class SessionTracker {
 			messageCount: messages.length,
 			duration,
 		};
+
+		logger.debug('Session usage saved', {
+			sessionId: this.sessionId,
+			messageCount: messages.length,
+			totalTokens: breakdown.total,
+			durationMs: duration,
+		});
 
 		addSession(session);
 	}
@@ -110,6 +118,11 @@ export function initializeSession(provider: string, model: string): void {
 }
 
 export function getCurrentSession(): SessionTracker | null {
+	const logger = getLogger();
+	logger.debug('Usage session requested', {
+		exists: currentSessionTracker !== null,
+		sessionId: currentSessionTracker?.getSessionInfo().id,
+	});
 	return currentSessionTracker;
 }
 
