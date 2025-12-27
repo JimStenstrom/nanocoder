@@ -1,4 +1,5 @@
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
+import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {ConversationContext} from '@/hooks/useAppState';
 import {getToolManager, processToolUse} from '@/message-handler';
 import {
@@ -241,8 +242,12 @@ export function useToolHandler({
 				const parsedArgs = parseToolArguments(currentTool.function.arguments);
 
 				// Actually switch the mode
+				// Sync both React state AND global context synchronously
+				// to prevent race conditions where tools check global context
+				// before the useEffect in App.tsx has a chance to sync it
 				const requestedMode = parsedArgs.mode as DevelopmentMode;
 				setDevelopmentMode(requestedMode);
+				setCurrentModeContext(requestedMode);
 
 				addToChatQueue(
 					<InfoMessage

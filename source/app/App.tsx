@@ -58,7 +58,14 @@ export default function App({
 	const {isTrusted, handleConfirmTrust, isTrustLoading, isTrustedError} =
 		useDirectoryTrust();
 
-	// Sync global mode context whenever development mode changes
+	// Sync global mode context whenever development mode changes.
+	// Note: This useEffect serves as a backup synchronization mechanism.
+	// Primary synchronization happens synchronously at the call sites:
+	// - useNonInteractiveMode.ts: setCurrentModeContext() called with setDevelopmentMode()
+	// - useToolHandler.tsx: setCurrentModeContext() called with setDevelopmentMode()
+	// - useAppHandlers.tsx: setCurrentModeContext() called within handleToggleDevelopmentMode()
+	// This effect ensures the global context stays in sync even if new code paths
+	// are added that update React state without updating the global context.
 	React.useEffect(() => {
 		setCurrentModeContext(appState.developmentMode);
 

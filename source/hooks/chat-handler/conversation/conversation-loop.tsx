@@ -263,52 +263,10 @@ export const processAssistantResponse = async (
 
 	// Handle tool calls if present - this continues the loop
 	if (validToolCalls && validToolCalls.length > 0) {
-		// In Plan Mode, block file modification tools
-		if (developmentMode === 'plan') {
-			const fileModificationTools = [
-				'create_file',
-				'delete_lines',
-				'insert_lines',
-				'replace_lines',
-			];
-			const blockedTools = validToolCalls.filter(tc =>
-				fileModificationTools.includes(tc.function.name),
-			);
-
-			if (blockedTools.length > 0) {
-				// Create error results for blocked tools
-				const blockedToolErrors: ToolResult[] = blockedTools.map(toolCall => ({
-					tool_call_id: toolCall.id,
-					role: 'tool' as const,
-					name: toolCall.function.name,
-					content: `⚠ Tool "${toolCall.function.name}" is not allowed in Plan Mode. File modification tools are restricted in this mode. Switch to Normal Mode or Auto-accept Mode to execute file modifications.`,
-				}));
-
-				// Display error messages
-				for (const error of blockedToolErrors) {
-					addToChatQueue(
-						<ErrorMessage
-							key={`plan-mode-blocked-${error.tool_call_id}-${Date.now()}`}
-							message={error.content}
-							hideBox={true}
-						/>,
-					);
-				}
-
-				// Continue conversation with error messages
-				const blockedBuilder = new MessageBuilder(updatedMessages);
-				blockedBuilder.addToolResults(blockedToolErrors);
-				const updatedMessagesWithError = blockedBuilder.build();
-				setMessages(updatedMessagesWithError);
-
-				// Continue the main conversation loop with error messages as context
-				await processAssistantResponse({
-					...params,
-					messages: updatedMessagesWithError,
-				});
-				return;
-			}
-		}
+		// Note: Plan mode tool blocking was removed - the referenced tools
+		// (create_file, delete_lines, insert_lines, replace_lines) no longer exist.
+		// Plan mode restrictions are handled via needsApproval in tool definitions.
+		// TODO: Implement registry-based blocking for plan mode (track as separate issue).
 
 		// Separate tools that need confirmation vs those that don't
 		// Check tool's needsApproval property to determine if confirmation is needed
