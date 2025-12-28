@@ -296,6 +296,18 @@ async function handleCheckpointLoad(
 }
 
 /**
+ * Helper to queue a message with proper React timing
+ */
+function queueResumeMessage(
+	onAddToChatQueue: (component: React.ReactNode) => void,
+	element: React.ReactElement,
+): void {
+	queueMicrotask(() => {
+		onAddToChatQueue(element);
+	});
+}
+
+/**
  * Helper to complete resume command with proper React timing
  */
 function completeResumeCommand(
@@ -303,9 +315,7 @@ function completeResumeCommand(
 	onCommandComplete: (() => void) | undefined,
 	element: React.ReactElement,
 ): void {
-	queueMicrotask(() => {
-		onAddToChatQueue(element);
-	});
+	queueResumeMessage(onAddToChatQueue, element);
 	setTimeout(() => {
 		onCommandComplete?.();
 	}, DELAY_COMMAND_COMPLETE_MS);
@@ -327,24 +337,26 @@ function restoreSession(
 	onCommandComplete: (() => void) | undefined,
 	currentMessageCount: number,
 ): void {
+	// Validate session messages
+	const validMessages = Array.isArray(session.messages) ? session.messages : [];
+
 	// Restore session identity and messages
 	sessionService.restore({
 		id: session.id,
 		createdAt: session.createdAt,
 	});
-	setMessages(session.messages);
+	setMessages(validMessages);
 
-	// Show warning if current session had unsaved messages
+	// Show warning if current conversation had messages (they may not be saved yet)
 	if (currentMessageCount > 0) {
-		queueMicrotask(() => {
-			onAddToChatQueue(
-				React.createElement(WarningMessage, {
-					key: generateKey('resume-warning'),
-					message: `Previous session with ${currentMessageCount} message(s) was replaced.`,
-					hideBox: true,
-				}),
-			);
-		});
+		queueResumeMessage(
+			onAddToChatQueue,
+			React.createElement(WarningMessage, {
+				key: generateKey('resume-warning'),
+				message: `Switched from current conversation (${currentMessageCount} messages). Use /resume to switch back if needed.`,
+				hideBox: true,
+			}),
+		);
 	}
 
 	completeResumeCommand(
@@ -352,7 +364,7 @@ function restoreSession(
 		onCommandComplete,
 		React.createElement(SuccessMessage, {
 			key: generateKey('resume-success'),
-			message: `Session restored: ${session.name} (${session.messageCount} messages)`,
+			message: `Session restored: ${session.name} (${validMessages.length} messages)`,
 			hideBox: true,
 		}),
 	);
@@ -379,6 +391,24 @@ async function handleResumeCommand(
 		: null;
 
 	try {
+		// /resume help - show help
+		if (subcommand === 'help') {
+			completeResumeCommand(
+				onAddToChatQueue,
+				onCommandComplete,
+				React.createElement(InfoMessage, {
+					key: generateKey('resume-help'),
+					message: `Resume commands:
+  /resume        - List recent sessions
+  /resume last   - Resume the most recent session
+  /resume <n>    - Resume session #n from the list
+  /resume <id>   - Resume session by ID`,
+					hideBox: true,
+				}),
+			);
+			return true;
+		}
+
 		// /resume last - resume most recent session
 		if (subcommand === 'last') {
 			const session = await sessionManager.getLastSession();
@@ -426,22 +456,36 @@ async function handleResumeCommand(
 		const isPurelyNumeric = /^\d+$/.test(subcommand);
 		if (isPurelyNumeric) {
 			const index = Number.parseInt(subcommand, 10);
-			if (index > 0) {
-				const sessions = await sessionManager.listSessions({limit: index});
-				if (sessions.length < index) {
-					completeResumeCommand(
-						onAddToChatQueue,
-						onCommandComplete,
-						React.createElement(ErrorMessage, {
-							key: generateKey('resume-error'),
-							message: `Session #${index} not found. Only ${sessions.length} sessions available.`,
-							hideBox: true,
-						}),
-					);
-					return true;
-				}
-				sessionId = sessions[index - 1].id;
+
+			// Handle invalid index (0 or negative would be caught here)
+			if (index < 1) {
+				completeResumeCommand(
+					onAddToChatQueue,
+					onCommandComplete,
+					React.createElement(ErrorMessage, {
+						key: generateKey('resume-error'),
+						message:
+							'Invalid session number. Sessions are numbered starting from 1. Use /resume to see available sessions.',
+						hideBox: true,
+					}),
+				);
+				return true;
 			}
+
+			const sessions = await sessionManager.listSessions({limit: index});
+			if (sessions.length < index) {
+				completeResumeCommand(
+					onAddToChatQueue,
+					onCommandComplete,
+					React.createElement(ErrorMessage, {
+						key: generateKey('resume-error'),
+						message: `Session #${index} not found. Only ${sessions.length} session(s) available.`,
+						hideBox: true,
+					}),
+				);
+				return true;
+			}
+			sessionId = sessions[index - 1].id;
 		}
 
 		// Prevent resuming current session
