@@ -4,6 +4,7 @@ import {
 	ErrorMessage,
 	InfoMessage,
 	SuccessMessage,
+	WarningMessage,
 } from '@/components/message-box';
 import ToolMessage from '@/components/tool-message';
 import {
@@ -295,6 +296,69 @@ async function handleCheckpointLoad(
 }
 
 /**
+ * Helper to complete resume command with proper React timing
+ */
+function completeResumeCommand(
+	onAddToChatQueue: (component: React.ReactNode) => void,
+	onCommandComplete: (() => void) | undefined,
+	element: React.ReactElement,
+): void {
+	queueMicrotask(() => {
+		onAddToChatQueue(element);
+	});
+	setTimeout(() => {
+		onCommandComplete?.();
+	}, DELAY_COMMAND_COMPLETE_MS);
+}
+
+/**
+ * Helper to restore a session (identity + messages)
+ */
+function restoreSession(
+	session: {
+		id: string;
+		createdAt: number;
+		name: string;
+		messageCount: number;
+		messages: Message[];
+	},
+	setMessages: (messages: Message[]) => void,
+	onAddToChatQueue: (component: React.ReactNode) => void,
+	onCommandComplete: (() => void) | undefined,
+	currentMessageCount: number,
+): void {
+	// Restore session identity and messages
+	sessionService.restore({
+		id: session.id,
+		createdAt: session.createdAt,
+	});
+	setMessages(session.messages);
+
+	// Show warning if current session had unsaved messages
+	if (currentMessageCount > 0) {
+		queueMicrotask(() => {
+			onAddToChatQueue(
+				React.createElement(WarningMessage, {
+					key: generateKey('resume-warning'),
+					message: `Previous session with ${currentMessageCount} message(s) was replaced.`,
+					hideBox: true,
+				}),
+			);
+		});
+	}
+
+	completeResumeCommand(
+		onAddToChatQueue,
+		onCommandComplete,
+		React.createElement(SuccessMessage, {
+			key: generateKey('resume-success'),
+			message: `Session restored: ${session.name} (${session.messageCount} messages)`,
+			hideBox: true,
+		}),
+	);
+}
+
+/**
  * Handles /resume command with message restoration
  * Returns true if resume was handled (has subcommand), false to fall through to list view
  */
@@ -302,7 +366,7 @@ async function handleResumeCommand(
 	commandParts: string[],
 	options: MessageSubmissionOptions,
 ): Promise<boolean> {
-	const {onAddToChatQueue, onCommandComplete, setMessages} = options;
+	const {onAddToChatQueue, onCommandComplete, setMessages, messages} = options;
 
 	// /resume without args falls through to show list via built-in command
 	if (commandParts.length < 2) {
@@ -310,101 +374,123 @@ async function handleResumeCommand(
 	}
 
 	const subcommand = commandParts[1];
+	const currentSessionId = sessionService.isInitialized()
+		? sessionService.getSessionId()
+		: null;
 
 	try {
 		// /resume last - resume most recent session
 		if (subcommand === 'last') {
 			const session = await sessionManager.getLastSession();
 			if (!session) {
-				onAddToChatQueue(
+				completeResumeCommand(
+					onAddToChatQueue,
+					onCommandComplete,
 					React.createElement(ErrorMessage, {
 						key: generateKey('resume-error'),
 						message: 'No previous session found.',
 						hideBox: true,
 					}),
 				);
-				onCommandComplete?.();
 				return true;
 			}
 
-			// Restore session identity and messages
-			sessionService.restore({
-				id: session.id,
-				createdAt: session.createdAt,
-			});
-			setMessages(session.messages);
+			// Prevent resuming current session
+			if (session.id === currentSessionId) {
+				completeResumeCommand(
+					onAddToChatQueue,
+					onCommandComplete,
+					React.createElement(InfoMessage, {
+						key: generateKey('resume-info'),
+						message: 'Already in this session.',
+						hideBox: true,
+					}),
+				);
+				return true;
+			}
 
-			onAddToChatQueue(
-				React.createElement(SuccessMessage, {
-					key: generateKey('resume-success'),
-					message: `Session restored: ${session.name} (${session.messageCount} messages)`,
-					hideBox: true,
-				}),
+			restoreSession(
+				session,
+				setMessages,
+				onAddToChatQueue,
+				onCommandComplete,
+				messages.length,
 			);
-			onCommandComplete?.();
 			return true;
 		}
 
 		// /resume <id> or /resume <number>
 		let sessionId = subcommand;
 
-		// If it's a number, get session by index
-		const index = Number.parseInt(subcommand, 10);
-		if (!Number.isNaN(index) && index > 0) {
-			const sessions = await sessionManager.listSessions({limit: index});
-			if (sessions.length < index) {
-				onAddToChatQueue(
-					React.createElement(ErrorMessage, {
-						key: generateKey('resume-error'),
-						message: `Session #${index} not found. Only ${sessions.length} sessions available.`,
-						hideBox: true,
-					}),
-				);
-				onCommandComplete?.();
-				return true;
+		// Only treat as index if it's purely numeric (prevents collision with hex IDs)
+		const isPurelyNumeric = /^\d+$/.test(subcommand);
+		if (isPurelyNumeric) {
+			const index = Number.parseInt(subcommand, 10);
+			if (index > 0) {
+				const sessions = await sessionManager.listSessions({limit: index});
+				if (sessions.length < index) {
+					completeResumeCommand(
+						onAddToChatQueue,
+						onCommandComplete,
+						React.createElement(ErrorMessage, {
+							key: generateKey('resume-error'),
+							message: `Session #${index} not found. Only ${sessions.length} sessions available.`,
+							hideBox: true,
+						}),
+					);
+					return true;
+				}
+				sessionId = sessions[index - 1].id;
 			}
-			sessionId = sessions[index - 1].id;
+		}
+
+		// Prevent resuming current session
+		if (sessionId === currentSessionId) {
+			completeResumeCommand(
+				onAddToChatQueue,
+				onCommandComplete,
+				React.createElement(InfoMessage, {
+					key: generateKey('resume-info'),
+					message: 'Already in this session.',
+					hideBox: true,
+				}),
+			);
+			return true;
 		}
 
 		// Load session by ID
 		const session = await sessionManager.loadSession(sessionId);
 		if (!session) {
-			onAddToChatQueue(
+			completeResumeCommand(
+				onAddToChatQueue,
+				onCommandComplete,
 				React.createElement(ErrorMessage, {
 					key: generateKey('resume-error'),
 					message: `Session '${sessionId}' not found.`,
 					hideBox: true,
 				}),
 			);
-			onCommandComplete?.();
 			return true;
 		}
 
-		// Restore session identity and messages
-		sessionService.restore({
-			id: session.id,
-			createdAt: session.createdAt,
-		});
-		setMessages(session.messages);
-
-		onAddToChatQueue(
-			React.createElement(SuccessMessage, {
-				key: generateKey('resume-success'),
-				message: `Session restored: ${session.name} (${session.messageCount} messages)`,
-				hideBox: true,
-			}),
+		restoreSession(
+			session,
+			setMessages,
+			onAddToChatQueue,
+			onCommandComplete,
+			messages.length,
 		);
-		onCommandComplete?.();
 		return true;
 	} catch (error) {
-		onAddToChatQueue(
+		completeResumeCommand(
+			onAddToChatQueue,
+			onCommandComplete,
 			React.createElement(ErrorMessage, {
 				key: generateKey('resume-error'),
 				message: `Failed to resume session: ${getErrorMessage(error)}`,
 				hideBox: true,
 			}),
 		);
-		onCommandComplete?.();
 		return true;
 	}
 }
