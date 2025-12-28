@@ -30,6 +30,7 @@ import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {type LSPInitResult, getLSPManager} from '@/lsp/index';
 import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
+import {initializeSession} from '@/session';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CustomCommand} from '@/types/commands';
 import {
@@ -342,6 +343,13 @@ export function useAppInitialization({
 		const logger = getLogger();
 		const initializeApp = async () => {
 			logger.debug('App initialization: starting');
+
+			// Initialize session identity first (for key generation)
+			const session = initializeSession();
+			logger.debug('App initialization: session initialized', {
+				sessionId: session.id,
+			});
+
 			setClient(null);
 			setCurrentModel('');
 
