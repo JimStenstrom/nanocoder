@@ -85,22 +85,27 @@ function generateAlternatives(
 	const normalizedDesc = normalizeForBranchName(description);
 	const alternatives: string[] = [];
 
+	// If normalized description is empty, use a fallback
+	const descPart = normalizedDesc || 'update';
+
 	// Alternative 1: Short form with ticket first
 	if (ticketId) {
-		alternatives.push(`${ticketId.toLowerCase()}-${normalizedDesc}`);
+		alternatives.push(`${ticketId.toLowerCase()}-${descPart}`);
 	}
 
-	// Alternative 2: Kebab-case without prefix
-	alternatives.push(normalizedDesc);
+	// Alternative 2: Kebab-case without prefix (only if we have content)
+	if (normalizedDesc) {
+		alternatives.push(normalizedDesc);
+	}
 
 	// Alternative 3: Username prefix (common pattern)
-	alternatives.push(`user/${workType}/${normalizedDesc}`);
+	alternatives.push(`user/${workType}/${descPart}`);
 
 	// Alternative 4: Date-based
 	const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-	alternatives.push(`${workType}/${date}-${normalizedDesc.substring(0, 20)}`);
+	alternatives.push(`${workType}/${date}-${descPart.substring(0, 20)}`);
 
-	return alternatives.slice(0, 4);
+	return alternatives.filter(Boolean).slice(0, 4);
 }
 
 /**
@@ -361,7 +366,7 @@ const GitBranchSuggestFormatter = React.memo(
 
 		const messageContent = (
 			<Box flexDirection="column">
-				<Text color={colors.tool}>git branch_suggest</Text>
+				<Text color={colors.tool}>git_branch_suggest</Text>
 
 				<Box>
 					<Text color={colors.secondary}>Type: </Text>

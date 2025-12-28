@@ -306,7 +306,7 @@ const GitStatusEnhancedFormatter = React.memo(
 
 		const messageContent = (
 			<Box flexDirection="column">
-				<Text color={colors.tool}>git status_enhanced</Text>
+				<Text color={colors.tool}>git_status_enhanced</Text>
 
 				{branch && (
 					<Box>

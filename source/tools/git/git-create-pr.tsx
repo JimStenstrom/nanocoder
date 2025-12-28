@@ -411,12 +411,26 @@ const GitCreatePRFormatter = React.memo(
 
 		// Parse result for display
 		let title = '';
+		let description = '';
 		let targetBranch = args.targetBranch || 'main';
 		let hasBreakingChanges = false;
 
 		if (result) {
 			const titleMatch = result.match(/--- Title ---\n(.+)/);
 			if (titleMatch) title = titleMatch[1];
+
+			// Extract description (between --- Description --- and the end or next section)
+			const descMatch = result.match(
+				/--- Description ---\n([\s\S]*?)(?:\n---|\n\nTo create|$)/,
+			);
+			if (descMatch) {
+				// Get first few lines of description for preview
+				const descLines = descMatch[1].trim().split('\n').slice(0, 5);
+				description = descLines.join('\n');
+				if (descMatch[1].trim().split('\n').length > 5) {
+					description += '\n...';
+				}
+			}
 
 			const branchMatch = result.match(/Branch: .+ -> (.+)/);
 			if (branchMatch) targetBranch = branchMatch[1];
@@ -426,7 +440,7 @@ const GitCreatePRFormatter = React.memo(
 
 		const messageContent = (
 			<Box flexDirection="column">
-				<Text color={colors.tool}>git create_pr</Text>
+				<Text color={colors.tool}>git_create_pr</Text>
 
 				<Box>
 					<Text color={colors.secondary}>Target: </Text>
@@ -446,6 +460,15 @@ const GitCreatePRFormatter = React.memo(
 						<Text color={colors.white}>
 							{title.length > 40 ? title.substring(0, 40) + '...' : title}
 						</Text>
+					</Box>
+				)}
+
+				{description && (
+					<Box flexDirection="column" marginTop={1}>
+						<Text color={colors.secondary}>Description:</Text>
+						<Box marginLeft={2}>
+							<Text color={colors.white}>{description}</Text>
+						</Box>
 					</Box>
 				)}
 

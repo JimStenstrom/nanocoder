@@ -301,6 +301,7 @@ const GitSmartCommitFormatter = React.memo(
 		// Parse result for display
 		let filesChanged = 0;
 		let commitType = '';
+		let commitMessage = '';
 		let isBreaking = false;
 
 		if (result) {
@@ -313,6 +314,14 @@ const GitSmartCommitFormatter = React.memo(
 			);
 			if (typeMatch) commitType = typeMatch[1];
 
+			// Extract the full commit message (between === Generated Commit Message === and the next section)
+			const messageMatch = result.match(
+				/=== Generated Commit Message ===\n\n([\s\S]*?)(?:\n\n(?:WARNING:|$$Dry run|\(Dry run|To create|Commit created)|$)/,
+			);
+			if (messageMatch) {
+				commitMessage = messageMatch[1].trim();
+			}
+
 			isBreaking =
 				result.includes('BREAKING CHANGE') ||
 				result.includes('breaking change');
@@ -320,7 +329,7 @@ const GitSmartCommitFormatter = React.memo(
 
 		const messageContent = (
 			<Box flexDirection="column">
-				<Text color={colors.tool}>git smart_commit</Text>
+				<Text color={colors.tool}>git_smart_commit</Text>
 
 				<Box>
 					<Text color={colors.secondary}>Mode: </Text>
@@ -341,6 +350,15 @@ const GitSmartCommitFormatter = React.memo(
 								<Text color={colors.secondary}>Type: </Text>
 								<Text color={colors.primary}>{commitType}</Text>
 								{isBreaking && <Text color={colors.error}> (BREAKING)</Text>}
+							</Box>
+						)}
+
+						{commitMessage && (
+							<Box flexDirection="column" marginTop={1}>
+								<Text color={colors.secondary}>Message:</Text>
+								<Box marginLeft={2}>
+									<Text color={colors.white}>{commitMessage}</Text>
+								</Box>
 							</Box>
 						)}
 					</>
