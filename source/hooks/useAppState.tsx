@@ -2,6 +2,7 @@ import {loadPreferences} from '@/config/preferences';
 import {defaultTheme} from '@/config/themes';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
+import {sessionManager, sessionService} from '@/session';
 import {createTokenizer} from '@/tokenization/index.js';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CheckpointListItem} from '@/types/checkpoint';
@@ -346,6 +347,36 @@ export function useAppState() {
 		setCompletedToolResults([]);
 		setCurrentConversationContext(null);
 	};
+
+	// Auto-save session when messages change (debounced)
+	const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useEffect(() => {
+		// Only save if session is initialized and we have messages
+		if (!sessionService.isInitialized() || messages.length === 0) {
+			return;
+		}
+
+		// Clear any pending save
+		if (autoSaveTimeoutRef.current) {
+			clearTimeout(autoSaveTimeoutRef.current);
+		}
+
+		// Debounce: save after 5 seconds of no message changes
+		autoSaveTimeoutRef.current = setTimeout(() => {
+			sessionManager
+				.saveSession(messages, currentProvider, currentModel)
+				.catch(error => {
+					logger.warn('Failed to auto-save session', {error});
+				});
+		}, 5000);
+
+		// Cleanup on unmount or before next effect
+		return () => {
+			if (autoSaveTimeoutRef.current) {
+				clearTimeout(autoSaveTimeoutRef.current);
+			}
+		};
+	}, [messages, currentProvider, currentModel, logger]);
 
 	return {
 		// State
