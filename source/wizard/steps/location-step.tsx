@@ -1,7 +1,7 @@
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {colors} from '@/config';
-import {getConfigPath} from '@/config/paths';
+import {getConfigDir} from '@/config/paths';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {getLogger} from '@/utils/logging';
 import {Box, Text, useInput} from 'ink';
@@ -37,7 +37,7 @@ export function LocationStep({
 
 	const {isNarrow, truncatePath} = useResponsiveTerminal();
 	const projectPath = join(projectDir, 'agents.config.json');
-	const globalPath = join(getConfigPath(), 'agents.config.json');
+	const globalPath = join(getConfigDir(), 'agents.config.json');
 
 	const projectExists = existsSync(projectPath);
 	const globalExists = existsSync(globalPath);
