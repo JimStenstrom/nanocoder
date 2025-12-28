@@ -15,3 +15,4 @@ export * from '@/commands/status';
 export * from '@/commands/setup-config';
 export * from '@/commands/usage';
 export * from '@/commands/checkpoint';
+export * from '@/commands/resume';
