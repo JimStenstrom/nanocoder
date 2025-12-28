@@ -2,6 +2,7 @@ import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import AssistantMessage from '@/components/assistant-message';
 import {ErrorMessage} from '@/components/message-box';
 import UserMessage from '@/components/user-message';
+import {generateKey} from '@/session';
 import {parseToolCalls} from '@/tool-calling/index';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, Message, ToolCall, ToolResult} from '@/types/core';
@@ -131,7 +132,7 @@ export const processAssistantResponse = async (
 		// Display error to user
 		addToChatQueue(
 			<ErrorMessage
-				key={`malformed-tool-${Date.now()}`}
+				key={generateKey('malformed-tool')}
 				message={errorContent}
 				hideBox={true}
 			/>,
@@ -240,7 +241,7 @@ export const processAssistantResponse = async (
 		for (const error of errorResults) {
 			addToChatQueue(
 				<ErrorMessage
-					key={`unknown-tool-${error.tool_call_id}-${Date.now()}`}
+					key={generateKey('unknown-tool')}
 					message={error.content}
 					hideBox={true}
 				/>,
@@ -399,7 +400,7 @@ export const processAssistantResponse = async (
 				// Add error message to UI
 				addToChatQueue(
 					<ErrorMessage
-						key={`tool-approval-required-${Date.now()}`}
+						key={generateKey('tool-approval-required')}
 						message={errorMsg}
 						hideBox={true}
 					/>,

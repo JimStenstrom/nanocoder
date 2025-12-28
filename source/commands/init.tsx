@@ -7,6 +7,7 @@ import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {AgentsTemplateGenerator} from '@/init/agents-template-generator';
 import {ExistingRulesExtractor} from '@/init/existing-rules-extractor';
 import {ProjectAnalyzer} from '@/init/project-analyzer';
+import {generateKey} from '@/session';
 import {Command} from '@/types/index';
 import {Box, Text} from 'ink';
 import React from 'react';
@@ -211,7 +212,7 @@ export const initCommand: Command = {
 			if (hasAgents && hasNanocoder && !forceRegenerate) {
 				return Promise.resolve(
 					React.createElement(InitError, {
-						key: `init-error-${Date.now()}`,
+						key: generateKey('init-error'),
 						message:
 							'Project already initialized. Found AGENTS.md and .nanocoder/ directory. Use /init --force to regenerate.',
 					}),
@@ -284,7 +285,7 @@ export const initCommand: Command = {
 
 			return Promise.resolve(
 				React.createElement(InitSuccess, {
-					key: `init-success-${Date.now()}`,
+					key: generateKey('init-success'),
 					created,
 					analysis: analysisSummary,
 				}),
@@ -294,7 +295,7 @@ export const initCommand: Command = {
 				error instanceof Error ? error.message : 'Unknown error';
 			return Promise.resolve(
 				React.createElement(InitError, {
-					key: `init-error-${Date.now()}`,
+					key: generateKey('init-error'),
 					message: `Failed to initialize project: ${errorMessage}`,
 				}),
 			);

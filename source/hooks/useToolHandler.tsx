@@ -2,6 +2,7 @@ import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {ConversationContext} from '@/hooks/useAppState';
 import {getToolManager, processToolUse} from '@/message-handler';
+import {generateKey} from '@/session';
 import {
 	DevelopmentMode,
 	LLMClient,
@@ -150,7 +151,7 @@ export function useToolHandler({
 			if (mcpInfo.isMCPTool) {
 				addToChatQueue(
 					<InfoMessage
-						key={`mcp-tool-executing-${getNextComponentKey()}-${Date.now()}`}
+						key={generateKey('mcp-tool-executing')}
 						message={`Executing MCP tool "${currentTool.function.name}" from server "${mcpInfo.serverName}"`}
 						hideBox={true}
 					/>,
@@ -179,7 +180,7 @@ export function useToolHandler({
 						// Display the error
 						addToChatQueue(
 							<ErrorMessage
-								key={`tool-validation-error-${getNextComponentKey()}-${Date.now()}`}
+								key={generateKey('tool-validation-error')}
 								message={validationResult.error}
 								hideBox={true}
 							/>,
@@ -216,7 +217,7 @@ export function useToolHandler({
 
 					addToChatQueue(
 						<ErrorMessage
-							key={`tool-validation-error-${getNextComponentKey()}-${Date.now()}`}
+							key={generateKey('tool-validation-error')}
 							message={`Validation error: ${String(validationError)}`}
 							hideBox={true}
 						/>,
@@ -251,7 +252,7 @@ export function useToolHandler({
 
 				addToChatQueue(
 					<InfoMessage
-						key={`mode-switched-${getNextComponentKey()}-${Date.now()}`}
+						key={generateKey('mode-switched')}
 						message={`Development mode switched to: ${requestedMode.toUpperCase()}`}
 						hideBox={true}
 					/>,

@@ -6,6 +6,7 @@
 import {UsageDisplay} from '@/components/usage/usage-display';
 import {getToolManager} from '@/message-handler';
 import {getModelContextLimit} from '@/models/index';
+import {generateKey} from '@/session';
 import {createTokenizer} from '@/tokenization/index';
 import type {Command} from '@/types/commands';
 import type {Message} from '@/types/core';
@@ -86,7 +87,7 @@ export const usageCommand: Command = {
 		const contextLimit = await getModelContextLimit(model);
 
 		return React.createElement(UsageDisplay, {
-			key: `usage-${Date.now()}`,
+			key: generateKey('usage'),
 			provider,
 			model,
 			contextLimit,

@@ -1,5 +1,6 @@
 import path from 'path';
 import {SuccessMessage} from '@/components/message-box';
+import {generateKey} from '@/session';
 import {Command, Message} from '@/types/index';
 import fs from 'fs/promises';
 import React from 'react';
@@ -72,7 +73,7 @@ total_tokens: ${tokens}
 		await fs.writeFile(filepath, frontmatter + markdownContent);
 
 		return React.createElement(Export, {
-			key: `export-${Date.now()}`,
+			key: generateKey('export'),
 			filename,
 		});
 	},

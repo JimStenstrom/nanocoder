@@ -1,5 +1,6 @@
 import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import {ErrorMessage} from '@/components/message-box';
+import {generateKey} from '@/session';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {ToolCall, ToolResult} from '@/types/core';
 import {formatError} from '@/utils/error-formatter';
@@ -51,7 +52,7 @@ export const executeToolsDirectly = async (
 					// Display the validation error to the user
 					addToChatQueue(
 						<ErrorMessage
-							key={`validation-error-${toolCall.id}-${Date.now()}`}
+							key={generateKey('validation-error')}
 							message={validationResult.error}
 							hideBox={true}
 						/>,

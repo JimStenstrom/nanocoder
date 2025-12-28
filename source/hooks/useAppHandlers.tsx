@@ -12,6 +12,7 @@ import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {CheckpointManager} from '@/services/checkpoint-manager';
+import {generateKey} from '@/session';
 import type {
 	CheckpointListItem,
 	DevelopmentMode,
@@ -187,7 +188,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 					} catch (error) {
 						addToMessageQueue(
 							<WarningMessage
-								key={`backup-warning-${Date.now()}`}
+								key={generateKey('backup-warning')}
 								message={`Warning: Failed to create backup: ${
 									error instanceof Error ? error.message : 'Unknown error'
 								}`}
@@ -205,7 +206,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 
 				addToMessageQueue(
 					<SuccessMessage
-						key={`restore-success-${Date.now()}`}
+						key={generateKey('restore-success')}
 						message={`✓ Checkpoint '${checkpointName}' restored successfully`}
 						hideBox={true}
 					/>,
@@ -213,7 +214,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 			} catch (error) {
 				addToMessageQueue(
 					<ErrorMessage
-						key={`restore-error-${Date.now()}`}
+						key={generateKey('restore-error')}
 						message={`Failed to restore checkpoint: ${
 							error instanceof Error ? error.message : 'Unknown error'
 						}`}
