@@ -39,7 +39,8 @@ test('getDefaultLogDirectory returns valid directory path', t => {
 
 	t.is(typeof directory, 'string', 'Should return string');
 	t.true(directory.length > 0, 'Should not be empty');
-	t.true(directory.includes('logs'), 'Should include logs in path');
+	// Case-insensitive check for 'logs' (macOS uses 'Logs', Linux uses 'logs')
+	t.true(directory.toLowerCase().includes('logs'), 'Should include logs in path');
 });
 
 test('createDevelopmentConfig creates valid development config', t => {
