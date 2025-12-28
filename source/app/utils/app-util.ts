@@ -339,6 +339,7 @@ function restoreSession(
 ): void {
 	// Validate session messages
 	const validMessages = Array.isArray(session.messages) ? session.messages : [];
+	const isCorrupted = validMessages.length !== session.messageCount;
 
 	// Restore session identity and messages
 	sessionService.restore({
@@ -347,13 +348,25 @@ function restoreSession(
 	});
 	setMessages(validMessages);
 
-	// Show warning if current conversation had messages (they may not be saved yet)
+	// Show warning if current conversation had messages (unsaved work)
 	if (currentMessageCount > 0) {
 		queueResumeMessage(
 			onAddToChatQueue,
 			React.createElement(WarningMessage, {
 				key: generateKey('resume-warning'),
-				message: `Switched from current conversation (${currentMessageCount} messages). Use /resume to switch back if needed.`,
+				message: `Switched from current conversation (${currentMessageCount} messages). Previous conversation may not be saved.`,
+				hideBox: true,
+			}),
+		);
+	}
+
+	// Show warning if session data appears corrupted
+	if (isCorrupted) {
+		queueResumeMessage(
+			onAddToChatQueue,
+			React.createElement(WarningMessage, {
+				key: generateKey('resume-corrupt'),
+				message: `Session may be corrupted: expected ${session.messageCount} messages but found ${validMessages.length}.`,
 				hideBox: true,
 			}),
 		);
@@ -402,7 +415,8 @@ async function handleResumeCommand(
   /resume        - List recent sessions
   /resume last   - Resume the most recent session
   /resume <n>    - Resume session #n from the list
-  /resume <id>   - Resume session by ID`,
+  /resume <id>   - Resume session by ID
+  /resume help   - Show this help`,
 					hideBox: true,
 				}),
 			);
