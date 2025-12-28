@@ -1,81 +1,179 @@
+/**
+ * Centralized path management for nanocoder
+ *
+ * Platform Standards:
+ * - macOS: ~/Library/Application Support/, ~/Library/Caches/, ~/Library/Logs/
+ *   Per Apple File System Programming Guide
+ * - Linux: XDG Base Directory Specification
+ *   ~/.config/, ~/.local/share/, ~/.cache/, ~/.local/state/
+ * - Windows: %APPDATA%, %LOCALAPPDATA%
+ *   Per Microsoft App Data Documentation
+ *
+ * Environment Variable Overrides (highest priority):
+ * - NANOCODER_HOME: Override base path for all directories
+ * - NANOCODER_CONFIG_DIR: Override config directory only
+ * - NANOCODER_DATA_DIR: Override data directory only
+ * - NANOCODER_CACHE_DIR: Override cache directory only
+ * - NANOCODER_LOG_DIR: Override logs directory only
+ */
+
 import {existsSync, mkdirSync, writeFileSync} from 'fs';
 import {homedir} from 'os';
 import {join} from 'path';
 
 // ============================================
-// Primary Base Path (Issue #230)
+// Platform-Native Path Functions
 // ============================================
 
 /**
- * Get the base directory for all nanocoder files.
- * All subdirectories (config, data, logs, cache, sessions) live under this.
+ * Get the config directory for configuration files.
+ * Contains: agents.config.json, rules.json
  *
- * Locations:
- * - macOS/Linux: ~/.config/nanocoder/
+ * Platform locations:
+ * - macOS: ~/Library/Application Support/nanocoder/
+ * - Linux: ~/.config/nanocoder/ (XDG_CONFIG_HOME)
  * - Windows: %APPDATA%\nanocoder\
- *
- * Override with NANOCODER_HOME_DIR environment variable.
  */
-export function getBasePath(): string {
-	if (process.env.NANOCODER_HOME_DIR) {
-		return process.env.NANOCODER_HOME_DIR;
+export function getConfigDir(): string {
+	// Explicit override takes highest priority
+	if (process.env.NANOCODER_CONFIG_DIR) {
+		return process.env.NANOCODER_CONFIG_DIR;
+	}
+
+	// NANOCODER_HOME override for all paths
+	if (process.env.NANOCODER_HOME) {
+		return join(process.env.NANOCODER_HOME, 'config');
 	}
 
 	switch (process.platform) {
+		case 'darwin':
+			return join(homedir(), 'Library', 'Application Support', 'nanocoder');
 		case 'win32':
 			return join(
 				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'),
 				'nanocoder',
 			);
 		default:
-			// darwin & linux unified under ~/.config/nanocoder/
-			return join(homedir(), '.config', 'nanocoder');
+			// Linux: Use XDG_CONFIG_HOME (only checked on Linux per XDG spec)
+			return join(
+				process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'),
+				'nanocoder',
+			);
 	}
-}
-
-// ============================================
-// Global Subdirectory Helpers
-// ============================================
-
-/**
- * Get the config directory for configuration files.
- * Contains: agents.config.json, rules.json (future)
- */
-export function getConfigDir(): string {
-	if (process.env.NANOCODER_CONFIG_DIR) {
-		return process.env.NANOCODER_CONFIG_DIR;
-	}
-	return join(getBasePath(), 'config');
 }
 
 /**
  * Get the data directory for user data files.
- * Contains: preferences.json, usage.json, history
+ * Contains: preferences.json, usage.json, history, sessions, commands
+ *
+ * Platform locations:
+ * - macOS: ~/Library/Application Support/nanocoder/
+ * - Linux: ~/.local/share/nanocoder/ (XDG_DATA_HOME)
+ * - Windows: %APPDATA%\nanocoder\
  */
 export function getDataDir(): string {
+	// Explicit override takes highest priority
 	if (process.env.NANOCODER_DATA_DIR) {
 		return process.env.NANOCODER_DATA_DIR;
 	}
-	return join(getBasePath(), 'data');
+
+	// NANOCODER_HOME override for all paths
+	if (process.env.NANOCODER_HOME) {
+		return join(process.env.NANOCODER_HOME, 'data');
+	}
+
+	switch (process.platform) {
+		case 'darwin':
+			return join(homedir(), 'Library', 'Application Support', 'nanocoder');
+		case 'win32':
+			return join(
+				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'),
+				'nanocoder',
+			);
+		default:
+			// Linux: Use XDG_DATA_HOME (only checked on Linux per XDG spec)
+			return join(
+				process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'),
+				'nanocoder',
+			);
+	}
+}
+
+/**
+ * Get the cache directory for cached/regenerable data.
+ * Contains: models.json
+ *
+ * Platform locations:
+ * - macOS: ~/Library/Caches/nanocoder/
+ * - Linux: ~/.cache/nanocoder/ (XDG_CACHE_HOME)
+ * - Windows: %LOCALAPPDATA%\nanocoder\cache\
+ */
+export function getCacheDir(): string {
+	// Explicit override takes highest priority
+	if (process.env.NANOCODER_CACHE_DIR) {
+		return process.env.NANOCODER_CACHE_DIR;
+	}
+
+	// NANOCODER_HOME override for all paths
+	if (process.env.NANOCODER_HOME) {
+		return join(process.env.NANOCODER_HOME, 'cache');
+	}
+
+	switch (process.platform) {
+		case 'darwin':
+			return join(homedir(), 'Library', 'Caches', 'nanocoder');
+		case 'win32':
+			return join(
+				process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'),
+				'nanocoder',
+				'cache',
+			);
+		default:
+			// Linux: Use XDG_CACHE_HOME (only checked on Linux per XDG spec)
+			return join(
+				process.env.XDG_CACHE_HOME ?? join(homedir(), '.cache'),
+				'nanocoder',
+			);
+	}
 }
 
 /**
  * Get the logs directory for log files.
  * Contains: nanocoder-YYYY-MM-DD.log
+ *
+ * Platform locations:
+ * - macOS: ~/Library/Logs/nanocoder/
+ * - Linux: ~/.local/state/nanocoder/logs/ (XDG_STATE_HOME)
+ * - Windows: %APPDATA%\nanocoder\logs\
  */
 export function getLogsDir(): string {
+	// Explicit override takes highest priority
 	if (process.env.NANOCODER_LOG_DIR) {
 		return process.env.NANOCODER_LOG_DIR;
 	}
-	return join(getBasePath(), 'logs');
-}
 
-/**
- * Get the cache directory for cached data.
- * Contains: models.json
- */
-export function getCacheDir(): string {
-	return join(getBasePath(), 'cache');
+	// NANOCODER_HOME override for all paths
+	if (process.env.NANOCODER_HOME) {
+		return join(process.env.NANOCODER_HOME, 'logs');
+	}
+
+	switch (process.platform) {
+		case 'darwin':
+			return join(homedir(), 'Library', 'Logs', 'nanocoder');
+		case 'win32':
+			return join(
+				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'),
+				'nanocoder',
+				'logs',
+			);
+		default:
+			// Linux: Use XDG_STATE_HOME for logs (only checked on Linux per XDG spec)
+			return join(
+				process.env.XDG_STATE_HOME ?? join(homedir(), '.local', 'state'),
+				'nanocoder',
+				'logs',
+			);
+	}
 }
 
 /**
@@ -83,7 +181,15 @@ export function getCacheDir(): string {
  * Contains: session data for /resume command (issue #51)
  */
 export function getSessionsDir(): string {
-	return join(getBasePath(), 'sessions');
+	return join(getDataDir(), 'sessions');
+}
+
+/**
+ * Get the global commands directory.
+ * Contains: user's global custom commands
+ */
+export function getGlobalCommandsDir(): string {
+	return join(getDataDir(), 'commands');
 }
 
 // ============================================
@@ -140,6 +246,11 @@ export function initProjectConfig(cwd: string = process.cwd()): void {
 // ============================================
 
 /**
+ * @deprecated Use getBasePath() is removed. Use getConfigDir() or getDataDir() instead.
+ * This function provided a unified base path which is no longer the architecture.
+ */
+
+/**
  * @deprecated Use getDataDir() instead. Will be removed in future version.
  * Legacy function that returned platform-specific app data directory.
  */
@@ -149,10 +260,8 @@ export function getAppDataPath(): string {
 		return process.env.NANOCODER_DATA_DIR;
 	}
 
-	// Check XDG_DATA_HOME first (works cross-platform for testing)
-	if (process.env.XDG_DATA_HOME) {
-		return join(process.env.XDG_DATA_HOME, 'nanocoder');
-	}
+	// NOTE: XDG_DATA_HOME check removed from here - it was incorrectly
+	// checked for all platforms. XDG is now only checked in Linux case.
 
 	// Platform-specific app data directories
 	let baseAppDataPath: string;
@@ -167,7 +276,9 @@ export function getAppDataPath(): string {
 			break;
 		}
 		default: {
-			baseAppDataPath = join(homedir(), '.local', 'share');
+			// Linux: Check XDG_DATA_HOME only here
+			baseAppDataPath =
+				process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share');
 		}
 	}
 	return join(baseAppDataPath, 'nanocoder');
@@ -191,7 +302,9 @@ export function getConfigPath(): string {
 				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming');
 			break;
 		case 'darwin':
-			baseConfigPath = join(homedir(), 'Library', 'Preferences');
+			// Fixed: Use Application Support instead of Preferences
+			// Preferences is for .plist files only per Apple HIG
+			baseConfigPath = join(homedir(), 'Library', 'Application Support');
 			break;
 		default:
 			baseConfigPath =
