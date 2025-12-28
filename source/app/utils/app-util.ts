@@ -1,12 +1,17 @@
 import {parseInput} from '@/command-parser';
 import {commandRegistry} from '@/commands';
-import {ErrorMessage, InfoMessage} from '@/components/message-box';
+import {
+	ErrorMessage,
+	InfoMessage,
+	SuccessMessage,
+} from '@/components/message-box';
 import ToolMessage from '@/components/tool-message';
 import {
 	DELAY_COMMAND_COMPLETE_MS,
 	TRUNCATION_RESULT_STRING_LENGTH,
 } from '@/constants';
 import {CheckpointManager} from '@/services/checkpoint-manager';
+import {generateKey, sessionManager, sessionService} from '@/session';
 import {toolRegistry} from '@/tools/index';
 import type {LLMClient} from '@/types/core';
 import type {Message, MessageSubmissionOptions} from '@/types/index';
@@ -22,6 +27,7 @@ const SPECIAL_COMMANDS = {
 	SETUP_CONFIG: 'setup-config',
 	STATUS: 'status',
 	CHECKPOINT: 'checkpoint',
+	RESUME: 'resume',
 } as const;
 
 /** Checkpoint subcommands */
@@ -289,6 +295,121 @@ async function handleCheckpointLoad(
 }
 
 /**
+ * Handles /resume command with message restoration
+ * Returns true if resume was handled (has subcommand), false to fall through to list view
+ */
+async function handleResumeCommand(
+	commandParts: string[],
+	options: MessageSubmissionOptions,
+): Promise<boolean> {
+	const {onAddToChatQueue, onCommandComplete, setMessages} = options;
+
+	// /resume without args falls through to show list via built-in command
+	if (commandParts.length < 2) {
+		return false;
+	}
+
+	const subcommand = commandParts[1];
+
+	try {
+		// /resume last - resume most recent session
+		if (subcommand === 'last') {
+			const session = await sessionManager.getLastSession();
+			if (!session) {
+				onAddToChatQueue(
+					React.createElement(ErrorMessage, {
+						key: generateKey('resume-error'),
+						message: 'No previous session found.',
+						hideBox: true,
+					}),
+				);
+				onCommandComplete?.();
+				return true;
+			}
+
+			// Restore session identity and messages
+			sessionService.restore({
+				id: session.id,
+				createdAt: session.createdAt,
+			});
+			setMessages(session.messages);
+
+			onAddToChatQueue(
+				React.createElement(SuccessMessage, {
+					key: generateKey('resume-success'),
+					message: `Session restored: ${session.name} (${session.messageCount} messages)`,
+					hideBox: true,
+				}),
+			);
+			onCommandComplete?.();
+			return true;
+		}
+
+		// /resume <id> or /resume <number>
+		let sessionId = subcommand;
+
+		// If it's a number, get session by index
+		const index = Number.parseInt(subcommand, 10);
+		if (!Number.isNaN(index) && index > 0) {
+			const sessions = await sessionManager.listSessions({limit: index});
+			if (sessions.length < index) {
+				onAddToChatQueue(
+					React.createElement(ErrorMessage, {
+						key: generateKey('resume-error'),
+						message: `Session #${index} not found. Only ${sessions.length} sessions available.`,
+						hideBox: true,
+					}),
+				);
+				onCommandComplete?.();
+				return true;
+			}
+			sessionId = sessions[index - 1].id;
+		}
+
+		// Load session by ID
+		const session = await sessionManager.loadSession(sessionId);
+		if (!session) {
+			onAddToChatQueue(
+				React.createElement(ErrorMessage, {
+					key: generateKey('resume-error'),
+					message: `Session '${sessionId}' not found.`,
+					hideBox: true,
+				}),
+			);
+			onCommandComplete?.();
+			return true;
+		}
+
+		// Restore session identity and messages
+		sessionService.restore({
+			id: session.id,
+			createdAt: session.createdAt,
+		});
+		setMessages(session.messages);
+
+		onAddToChatQueue(
+			React.createElement(SuccessMessage, {
+				key: generateKey('resume-success'),
+				message: `Session restored: ${session.name} (${session.messageCount} messages)`,
+				hideBox: true,
+			}),
+		);
+		onCommandComplete?.();
+		return true;
+	} catch (error) {
+		onAddToChatQueue(
+			React.createElement(ErrorMessage, {
+				key: generateKey('resume-error'),
+				message: `Failed to resume session: ${getErrorMessage(error)}`,
+				hideBox: true,
+			}),
+		);
+		onCommandComplete?.();
+		return true;
+	}
+}
+
+/**
  * Handles built-in commands via the command registry
  */
 async function handleBuiltInCommand(
@@ -372,6 +493,14 @@ async function handleSlashCommand(
 	// Try checkpoint load
 	const commandParts = message.slice(1).trim().split(/\s+/);
 	if (await handleCheckpointLoad(commandParts, options)) {
+		return;
+	}
+
+	// Try resume with message restoration
+	if (
+		commandParts[0] === SPECIAL_COMMANDS.RESUME &&
+		(await handleResumeCommand(commandParts, options))
+	) {
 		return;
 	}
 
