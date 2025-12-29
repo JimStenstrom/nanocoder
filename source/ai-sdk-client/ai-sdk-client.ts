@@ -1,3 +1,4 @@
+import {createAzure} from '@ai-sdk/azure';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
 import type {LanguageModel} from 'ai';
 import {Agent} from 'undici';
@@ -13,10 +14,16 @@ import type {
 } from '@/types/index';
 import {getLogger} from '@/utils/logging';
 import {handleChat} from './chat/chat-handler.js';
+import {createAzureProvider} from './providers/azure-provider-factory.js';
 import {createProvider} from './providers/provider-factory.js';
 
+// Provider type that can be either OpenAI-compatible or Azure
+type ProviderInstance =
+	| ReturnType<typeof createOpenAICompatible>
+	| ReturnType<typeof createAzure>;
+
 export class AISDKClient implements LLMClient {
-	private provider: ReturnType<typeof createOpenAICompatible>;
+	private provider: ProviderInstance;
 	private currentModel: string;
 	private availableModels: string[];
 	private providerConfig: AIProviderConfig;
@@ -60,7 +67,15 @@ export class AISDKClient implements LLMClient {
 			keepAliveMaxTimeout: connectionPool?.cumulativeMaxIdleTimeout,
 		});
 
-		this.provider = createProvider(this.providerConfig, this.undiciAgent);
+		// Create appropriate provider based on type
+		if (providerConfig.providerType === 'azure') {
+			this.provider = createAzureProvider(
+				this.providerConfig,
+				this.undiciAgent,
+			);
+		} else {
+			this.provider = createProvider(this.providerConfig, this.undiciAgent);
+		}
 
 		// Fetch context size asynchronously (don't block construction)
 		void this.updateContextSize();

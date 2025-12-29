@@ -150,3 +150,64 @@ test('custom template: includes timeout', t => {
 
 	t.is(config.timeout, 60000);
 });
+
+// Azure OpenAI tests
+test('azure-openai template: basic configuration', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		resourceName: 'my-resource',
+		apiKey: 'test-key',
+		deployment: 'gpt-4-deployment',
+		providerName: 'Azure OpenAI',
+	});
+
+	t.is(config.name, 'Azure OpenAI');
+	t.is(config.providerType, 'azure');
+	t.is(config.resourceName, 'my-resource');
+	t.is(config.apiKey, 'test-key');
+	t.deepEqual(config.models, ['gpt-4-deployment']);
+	t.is(config.apiVersion, '2024-02-15-preview');
+});
+
+test('azure-openai template: custom api version', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		resourceName: 'my-resource',
+		apiKey: 'test-key',
+		deployment: 'gpt-4-deployment',
+		apiVersion: '2024-06-01',
+	});
+
+	t.is(config.apiVersion, '2024-06-01');
+});
+
+test('azure-openai template: default provider name', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		resourceName: 'my-resource',
+		apiKey: 'test-key',
+		deployment: 'gpt-4-deployment',
+	});
+
+	t.is(config.name, 'Azure OpenAI');
+});
+
+test('azure-openai template: custom provider name', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		resourceName: 'my-resource',
+		apiKey: 'test-key',
+		deployment: 'gpt-4-deployment',
+		providerName: 'My Azure Instance',
+	});
+
+	t.is(config.name, 'My Azure Instance');
+});

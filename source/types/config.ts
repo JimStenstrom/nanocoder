@@ -1,9 +1,13 @@
 import type {ThemePreset} from '@/types/ui';
 
-// AI provider configurations (OpenAI-compatible)
+// Provider type discriminator
+export type ProviderType = 'openai-compatible' | 'azure';
+
+// AI provider configurations (supports OpenAI-compatible and Azure)
 export interface AIProviderConfig {
 	name: string;
 	type: string;
+	providerType?: ProviderType; // Defaults to 'openai-compatible' if not specified
 	models: string[];
 	requestTimeout?: number;
 	socketTimeout?: number;
@@ -15,6 +19,9 @@ export interface AIProviderConfig {
 	config: {
 		baseURL?: string;
 		apiKey?: string;
+		// Azure-specific fields
+		resourceName?: string;
+		apiVersion?: string;
 		[key: string]: unknown;
 	};
 }
@@ -22,6 +29,7 @@ export interface AIProviderConfig {
 // Provider configuration type for wizard and config building
 export interface ProviderConfig {
 	name: string;
+	providerType?: ProviderType; // Defaults to 'openai-compatible' if not specified
 	baseUrl?: string;
 	apiKey?: string;
 	models: string[];
@@ -34,13 +42,17 @@ export interface ProviderConfig {
 		idleTimeout?: number;
 		cumulativeMaxIdleTimeout?: number;
 	};
+	// Azure-specific fields
+	resourceName?: string; // Azure resource name (e.g., 'my-openai-resource')
+	apiVersion?: string; // Azure API version (e.g., '2024-02-15-preview')
 	[key: string]: unknown; // Allow additional provider-specific config
 }
 
 export interface AppConfig {
-	// Providers array structure - all OpenAI compatible
+	// Providers array structure - supports OpenAI-compatible and Azure providers
 	providers?: {
 		name: string;
+		providerType?: ProviderType; // Defaults to 'openai-compatible' if not specified
 		baseUrl?: string;
 		apiKey?: string;
 		models: string[];
@@ -51,6 +63,9 @@ export interface AppConfig {
 			idleTimeout?: number;
 			cumulativeMaxIdleTimeout?: number;
 		};
+		// Azure-specific fields
+		resourceName?: string;
+		apiVersion?: string;
 		[key: string]: unknown; // Allow additional provider-specific config
 	}[];
 

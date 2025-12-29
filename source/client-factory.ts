@@ -124,6 +124,7 @@ function loadProviderConfigs(): AIProviderConfig[] {
 			providers.push({
 				name: provider.name,
 				type: 'openai',
+				providerType: provider.providerType,
 				models: provider.models || [],
 				requestTimeout: provider.requestTimeout,
 				socketTimeout: provider.socketTimeout,
@@ -131,6 +132,9 @@ function loadProviderConfigs(): AIProviderConfig[] {
 				config: {
 					baseURL: provider.baseUrl,
 					apiKey: provider.apiKey || 'dummy-key',
+					// Azure-specific fields
+					resourceName: provider.resourceName,
+					apiVersion: provider.apiVersion,
 				},
 			});
 		}

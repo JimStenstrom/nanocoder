@@ -227,6 +227,46 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 		},
 	},
 	{
+		id: 'azure-openai',
+		name: 'Azure OpenAI',
+		fields: [
+			{
+				name: 'resourceName',
+				prompt: 'Azure Resource Name',
+				required: true,
+			},
+			{
+				name: 'apiKey',
+				prompt: 'API Key',
+				required: true,
+				sensitive: true,
+			},
+			{
+				name: 'deployment',
+				prompt: 'Deployment Name',
+				required: true,
+			},
+			{
+				name: 'apiVersion',
+				prompt: 'API Version',
+				default: '2024-02-15-preview',
+			},
+			{
+				name: 'providerName',
+				prompt: 'Provider name',
+				default: 'Azure OpenAI',
+			},
+		],
+		buildConfig: answers => ({
+			name: answers.providerName || 'Azure OpenAI',
+			providerType: 'azure',
+			resourceName: answers.resourceName,
+			apiKey: answers.apiKey,
+			models: [answers.deployment],
+			apiVersion: answers.apiVersion || '2024-02-15-preview',
+		}),
+	},
+	{
 		id: 'anthropic',
 		name: 'Anthropic Claude',
 		modelsEndpoint: 'anthropic',
