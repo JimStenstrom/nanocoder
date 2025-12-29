@@ -4,8 +4,17 @@ import Spinner from 'ink-spinner';
 import TextInput from 'ink-text-input';
 import {useEffect, useRef, useState} from 'react';
 import {colors} from '@/config/index';
-import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {ProviderConfig} from '../../types/config';
+import {
+	EditDeleteMenu,
+	FIELD_INPUT_HINTS,
+	ItemCountSummary,
+	ItemSummary,
+	MODEL_SELECTION_HINTS,
+	NavigationHints,
+	SELECTION_HINTS,
+	WizardHeader,
+} from '../components';
 import {
 	PROVIDER_TEMPLATES,
 	type ProviderTemplate,
@@ -68,7 +77,6 @@ export function ProviderStep({
 	onBack,
 	existingProviders = [],
 }: ProviderStepProps) {
-	const {isNarrow} = useResponsiveTerminal();
 	const [providers, setProviders] =
 		useState<ProviderConfig[]>(existingProviders);
 
@@ -675,18 +683,12 @@ export function ProviderStep({
 	if (mode === 'select-template-or-custom') {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Let's add AI providers. Would you like to use a template?
-					</Text>
-				</Box>
-				{providers.length > 0 && (
-					<Box marginBottom={1}>
-						<Text color={colors.success}>
-							{providers.length} provider(s) already added
-						</Text>
-					</Box>
-				)}
+				<WizardHeader title="Let's add AI providers. Would you like to use a template?" />
+				<ItemCountSummary
+					count={providers.length}
+					singular="provider"
+					plural="providers"
+				/>
 				<SelectInput
 					items={initialOptions}
 					onSelect={(item: {value: string}) => handleInitialSelect(item)}
@@ -698,18 +700,8 @@ export function ProviderStep({
 	if (mode === 'template-selection') {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Choose a provider template:
-					</Text>
-				</Box>
-				{providers.length > 0 && (
-					<Box marginBottom={1}>
-						<Text color={colors.success}>
-							Added: {providers.map(p => p.name).join(', ')}
-						</Text>
-					</Box>
-				)}
+				<WizardHeader title="Choose a provider template:" />
+				<ItemSummary items={providers.map(p => p.name)} />
 				<SelectInput
 					items={templateOptions}
 					onSelect={(item: TemplateOption) => handleTemplateSelect(item)}
@@ -721,11 +713,7 @@ export function ProviderStep({
 	if (mode === 'edit-selection') {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Select a provider to edit:
-					</Text>
-				</Box>
+				<WizardHeader title="Select a provider to edit:" />
 				<SelectInput
 					items={editOptions}
 					onSelect={(item: TemplateOption) => handleEditSelect(item)}
@@ -736,23 +724,13 @@ export function ProviderStep({
 
 	if (mode === 'edit-or-delete') {
 		const provider = editingIndex !== null ? providers[editingIndex] : null;
-		const editOrDeleteOptions = [
-			{label: 'Edit this provider', value: 'edit'},
-			{label: 'Delete this provider', value: 'delete'},
-		];
-
 		return (
-			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{provider?.name} - What would you like to do?
-					</Text>
-				</Box>
-				<SelectInput
-					items={editOrDeleteOptions}
-					onSelect={(item: {value: string}) => handleEditOrDeleteChoice(item)}
-				/>
-			</Box>
+			<EditDeleteMenu
+				itemName={provider?.name || 'Provider'}
+				itemType="provider"
+				onEdit={() => handleEditOrDeleteChoice({value: 'edit'})}
+				onDelete={() => handleEditOrDeleteChoice({value: 'delete'})}
+			/>
 		);
 	}
 
@@ -762,73 +740,39 @@ export function ProviderStep({
 
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{selectedTemplate.name} Configuration
-					</Text>
-					<Text dimColor>
-						{' '}
-						(Field {currentFieldIndex + 1}/{selectedTemplate.fields.length})
-					</Text>
-				</Box>
-
+				<WizardHeader
+					title={`${selectedTemplate.name} Configuration`}
+					fieldProgress={{
+						current: currentFieldIndex + 1,
+						total: selectedTemplate.fields.length,
+					}}
+				/>
 				<Box>
 					<Text>
 						{currentField.prompt}
-						{currentField.required && <Text color={colors.error}> *</Text>}:{' '}
-						{currentField.sensitive && '****'}
+						{currentField.required && <Text color={colors.error}> *</Text>}
+						{currentField.sensitive && ': ****'}
 					</Text>
 				</Box>
-
-				{!currentField.sensitive && (
-					<Box
-						marginBottom={1}
-						borderStyle="round"
-						borderColor={colors.secondary}
-					>
-						<TextInput
-							key={inputKey}
-							value={currentValue}
-							onChange={setCurrentValue}
-							onSubmit={handleFieldSubmit}
-						/>
-					</Box>
-				)}
-
-				{currentField.sensitive && (
-					<Box
-						marginBottom={1}
-						borderStyle="round"
-						borderColor={colors.secondary}
-					>
-						<TextInput
-							key={inputKey}
-							value={currentValue}
-							onChange={setCurrentValue}
-							onSubmit={handleFieldSubmit}
-							mask="*"
-						/>
-					</Box>
-				)}
-
+				<Box
+					marginBottom={1}
+					borderStyle="round"
+					borderColor={colors.secondary}
+				>
+					<TextInput
+						key={inputKey}
+						value={currentValue}
+						onChange={setCurrentValue}
+						onSubmit={handleFieldSubmit}
+						mask={currentField.sensitive ? '*' : undefined}
+					/>
+				</Box>
 				{error && (
 					<Box marginBottom={1}>
 						<Text color={colors.error}>{error}</Text>
 					</Box>
 				)}
-
-				{isNarrow ? (
-					<Box flexDirection="column">
-						<Text color={colors.secondary}>Enter: continue</Text>
-						<Text color={colors.secondary}>Shift+Tab: go back</Text>
-					</Box>
-				) : (
-					<Box>
-						<Text color={colors.secondary}>
-							Press Enter to continue | Shift+Tab to go back
-						</Text>
-					</Box>
-				)}
+				<NavigationHints hints={FIELD_INPUT_HINTS} />
 			</Box>
 		);
 	}
@@ -841,11 +785,7 @@ export function ProviderStep({
 
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{selectedTemplate.name} Configuration
-					</Text>
-				</Box>
+				<WizardHeader title={`${selectedTemplate.name} Configuration`} />
 				<Box marginBottom={1}>
 					<Text>How would you like to specify models?</Text>
 				</Box>
@@ -853,15 +793,9 @@ export function ProviderStep({
 					items={modelSourceOptions}
 					onSelect={(item: {value: string}) => handleModelSourceChoice(item)}
 				/>
-				{isNarrow ? (
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={colors.secondary}>Shift+Tab: go back</Text>
-					</Box>
-				) : (
-					<Box marginTop={1}>
-						<Text color={colors.secondary}>Shift+Tab to go back</Text>
-					</Box>
-				)}
+				<Box marginTop={1}>
+					<NavigationHints hints={SELECTION_HINTS} />
+				</Box>
 			</Box>
 		);
 	}
@@ -869,11 +803,7 @@ export function ProviderStep({
 	if (mode === 'fetching-models' && selectedTemplate) {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{selectedTemplate.name} Configuration
-					</Text>
-				</Box>
+				<WizardHeader title={`${selectedTemplate.name} Configuration`} />
 				{fetchError ? (
 					<Box flexDirection="column">
 						<Box marginBottom={1}>
@@ -912,11 +842,7 @@ export function ProviderStep({
 
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{selectedTemplate.name} Configuration
-					</Text>
-				</Box>
+				<WizardHeader title={`${selectedTemplate.name} Configuration`} />
 				<Box marginBottom={1}>
 					<Text>Select models to use ({selectedModelIds.size} selected):</Text>
 				</Box>
@@ -937,18 +863,9 @@ export function ProviderStep({
 						<Text color={colors.error}>{error}</Text>
 					</Box>
 				)}
-				{isNarrow ? (
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={colors.secondary}>Enter: toggle/continue</Text>
-						<Text color={colors.secondary}>Shift+Tab: go back</Text>
-					</Box>
-				) : (
-					<Box marginTop={1}>
-						<Text color={colors.secondary}>
-							Press Enter to toggle | Shift+Tab to go back
-						</Text>
-					</Box>
-				)}
+				<Box marginTop={1}>
+					<NavigationHints hints={MODEL_SELECTION_HINTS} />
+				</Box>
 			</Box>
 		);
 	}
