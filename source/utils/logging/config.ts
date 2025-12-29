@@ -3,7 +3,7 @@
  */
 
 import {getLogsDir} from '@/config/paths';
-import type {EnhancedLoggerConfig, LogLevel, LoggerConfig} from './types.js';
+import type {EnhancedLoggerConfig, LoggerConfig, LogLevel} from './types.js';
 
 /**
  * Get the default log directory based on platform

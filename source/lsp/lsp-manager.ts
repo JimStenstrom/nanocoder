@@ -4,9 +4,9 @@
  */
 
 import {EventEmitter} from 'events';
+import {readFile} from 'fs/promises';
 import {extname} from 'path';
 import {fileURLToPath} from 'url';
-import {readFile} from 'fs/promises';
 import {LSPClient, LSPServerConfig} from './lsp-client';
 import {
 	CodeAction,

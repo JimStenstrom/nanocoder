@@ -1,3 +1,4 @@
+import type React from 'react';
 import {WarningMessage} from '@/components/message-box';
 import {
 	TOKEN_THRESHOLD_CRITICAL_PERCENT,
@@ -9,7 +10,6 @@ import type {Message} from '@/types/core';
 import type {Tokenizer} from '@/types/tokenization';
 import {calculateTokenBreakdown} from '@/usage/calculator';
 import {getLogger} from '@/utils/logging';
-import type React from 'react';
 
 /**
  * Checks context usage and displays warning if approaching limit.

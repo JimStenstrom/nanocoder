@@ -8,8 +8,17 @@ type ClientTransport =
 	| StdioClientTransport
 	| WebSocketClientTransport
 	| StreamableHTTPClientTransport;
+
+import {dynamicTool} from 'ai';
 import {getCurrentMode} from '@/context/mode-context';
-import type {AISDKCoreTool, Tool, ToolParameterSchema} from '@/types/index';
+import type {
+	AISDKCoreTool,
+	MCPInitResult,
+	MCPServer,
+	MCPTool,
+	Tool,
+	ToolParameterSchema,
+} from '@/types/index';
 import {jsonSchema} from '@/types/index';
 import {
 	endMetrics,
@@ -19,10 +28,7 @@ import {
 	startMetrics,
 	withNewCorrelationContext,
 } from '@/utils/logging';
-import {dynamicTool} from 'ai';
 import {TransportFactory} from './transport-factory.js';
-
-import type {MCPInitResult, MCPServer, MCPTool} from '@/types/index';
 
 export class MCPClient {
 	private clients: Map<string, Client> = new Map();

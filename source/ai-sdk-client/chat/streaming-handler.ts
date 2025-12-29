@@ -1,6 +1,6 @@
+import type {ModelMessage} from 'ai';
 import type {StreamCallbacks, ToolCall} from '@/types/index';
 import {getLogger} from '@/utils/logging';
-import type {ModelMessage} from 'ai';
 import {isEmptyAssistantMessage} from '../converters/message-converter.js';
 import {
 	convertAISDKToolCall,
@@ -12,7 +12,9 @@ import type {TestableMessage} from '../types.js';
  * Creates the onStepFinish callback for AI SDK generateText
  * This handles logging and displaying tool execution results
  */
-export function createOnStepFinishHandler(callbacks: StreamCallbacks): (step: {
+export function createOnStepFinishHandler(
+	callbacks: StreamCallbacks,
+): (step: {
 	toolCalls?: Array<{toolCallId?: string; toolName: string; input: unknown}>;
 	toolResults?: Array<{output: unknown}>;
 	text?: string;

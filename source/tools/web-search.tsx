@@ -11,8 +11,8 @@ import {
 	WEB_SEARCH_DISPLAY_RESULTS,
 } from '@/constants';
 import {ThemeContext} from '@/hooks/useTheme';
-import {jsonSchema, tool} from '@/types/core';
 import type {NanocoderToolExport} from '@/types/core';
+import {jsonSchema, tool} from '@/types/core';
 
 interface SearchArgs {
 	query: string;

@@ -1,4 +1,4 @@
-import {existsSync, readFileSync, readdirSync, statSync} from 'fs';
+import {existsSync, readdirSync, readFileSync, statSync} from 'fs';
 import {basename, join, relative} from 'path';
 import {MAX_DIRECTORY_DEPTH, MAX_FILES_TO_SCAN} from '@/constants';
 

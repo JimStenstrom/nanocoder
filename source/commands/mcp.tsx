@@ -1,11 +1,11 @@
+import {Box, Text} from 'ink';
+import React from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {getToolManager} from '@/message-handler';
 import {ToolManager} from '@/tools/tool-manager';
 import type {Command} from '@/types/index';
-import {Box, Text} from 'ink';
-import React from 'react';
 
 // Helper function to get transport icons
 function getTransportIcon(transportType: string): string {

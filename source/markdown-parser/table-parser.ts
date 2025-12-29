@@ -1,6 +1,6 @@
-import {DEFAULT_TERMINAL_WIDTH, TABLE_COLUMN_MIN_WIDTH} from '@/constants';
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import {DEFAULT_TERMINAL_WIDTH, TABLE_COLUMN_MIN_WIDTH} from '@/constants';
 import type {Colors} from '../types/markdown-parser';
 import {stripMarkdown} from './utils';
 

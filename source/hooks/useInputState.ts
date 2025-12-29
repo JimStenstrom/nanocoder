@@ -1,10 +1,10 @@
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
 	PASTE_CHUNK_BASE_WINDOW_MS,
 	PASTE_CHUNK_MAX_WINDOW_MS,
 	PASTE_LARGE_CONTENT_THRESHOLD_CHARS,
 	PASTE_RAPID_DETECTION_MS,
 } from '@/constants';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {InputState, PlaceholderType} from '../types/hooks';
 import {handleAtomicDeletion} from '../utils/atomic-deletion';
 import {PasteDetector} from '../utils/paste-detection';

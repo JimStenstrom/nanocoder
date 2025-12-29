@@ -1,3 +1,4 @@
+import React from 'react';
 import {
 	createClearMessagesHandler,
 	handleMessageSubmission,
@@ -25,7 +26,6 @@ import type {ThemePreset} from '@/types/ui';
 import type {UpdateInfo} from '@/types/utils';
 import {getLogger} from '@/utils/logging';
 import {addToMessageQueue} from '@/utils/message-queue';
-import React from 'react';
 
 interface UseAppHandlersProps {
 	// State

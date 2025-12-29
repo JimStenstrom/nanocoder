@@ -1,10 +1,10 @@
+import {Box, Text, useInput} from 'ink';
+import SelectInput from 'ink-select-input';
+import {useEffect, useState} from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {LLMClient} from '@/types/core';
-import {Box, Text, useInput} from 'ink';
-import SelectInput from 'ink-select-input';
-import {useEffect, useState} from 'react';
 
 interface ModelSelectorProps {
 	client: LLMClient | null;

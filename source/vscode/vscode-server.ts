@@ -2,12 +2,12 @@
  * WebSocket server for VS Code extension communication
  */
 
-import {randomUUID} from 'crypto';
 import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'crypto';
+import {WebSocket, WebSocketServer} from 'ws';
 import {BoundedMap} from '@/utils/bounded-map';
 import {formatError} from '@/utils/error-formatter';
 import {getLogger} from '@/utils/logging';
-import {WebSocket, WebSocketServer} from 'ws';
 import {
 	AssistantMessage,
 	ClientMessage,
@@ -17,8 +17,8 @@ import {
 	DiagnosticInfo,
 	DiagnosticsRequestMessage,
 	FileChangeMessage,
-	PROTOCOL_VERSION,
 	PendingChange,
+	PROTOCOL_VERSION,
 	ServerMessage,
 	StatusMessage,
 } from './protocol';

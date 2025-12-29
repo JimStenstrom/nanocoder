@@ -59,7 +59,7 @@ jobs:
           # Create badges directory if it doesn't exist
           mkdir -p badges
 
-          # Coverage badge (with fallback if coverage not available) - with for-the-badge style and codacy logo
+          # Coverage badge (with fallback if coverage not available) - with for-the-badge style
           if [ "${{ steps.coverage.outputs.percentage }}" != "N/A" ]; then
             COVERAGE_PERCENTAGE="${{ steps.coverage.outputs.percentage }}"
             COVERAGE_COLOR=$(echo "${COVERAGE_PERCENTAGE}" | awk '{print ($1 >= 80) ? "brightgreen" : ($1 >= 50) ? "yellow" : "red"}')
@@ -67,10 +67,6 @@ jobs:
           else
             curl -s "https://img.shields.io/badge/coverage-N%2FA-lightgrey?style=for-the-badge" > badges/coverage.svg
           fi
-
-          # Version badge from package.json - with for-the-badge style and nodedotjs logo
-          VERSION=$(npm pkg get version | tr -d '"')
-          curl -s "https://img.shields.io/badge/version-${VERSION}-blue?style=for-the-badge&logo=nodedotjs" > badges/version.svg
 
           # Build status badge - with for-the-badge style and githubactions logo
           curl -s "https://img.shields.io/badge/build-${{ steps.build.outputs.status }}-${{ steps.build.outputs.color }}?style=for-the-badge&logo=githubactions" > badges/build.svg
@@ -93,9 +89,6 @@ jobs:
           # NPM version - with for-the-badge style and npm logo
           curl -s "https://img.shields.io/npm/v/@nanocollective/nanocoder?style=for-the-badge&logo=npm" > badges/npm-version.svg
 
-          # Discord badge - with for-the-badge style and discord logo
-          curl -s "https://img.shields.io/discord/1406287562527604766?label=Discord&logo=discord&style=for-the-badge&color=7289DA" > badges/discord.svg
-
       - name: Update README with badges
         run: |
           # Update badges in README.md
@@ -106,7 +99,7 @@ jobs:
             # Replace or add badges in the README
             sed -i 's|!\[Build Status\].*|![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg)|' README.md.tmp || echo "Build badge not found, will add it"
             sed -i 's|!\[Coverage\].*|![Coverage](https://github.com/Nano-Collective/nanocoder/raw/main/badges/coverage.svg)|' README.md.tmp || echo "Coverage badge not found, will add it"
-            sed -i 's|!\[Version\].*|![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/version.svg)|' README.md.tmp || echo "Version badge not found, will add it"
+            sed -i 's|!\[Version\].*|![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-version.svg)|' README.md.tmp || echo "Version badge not found, will add it"
             sed -i 's|!\[NPM Downloads\].*|![NPM Downloads](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-downloads-monthly.svg)|' README.md.tmp || echo "NPM downloads badge not found, will add it"
             sed -i 's|!\[Stars\].*|![Stars](https://github.com/Nano-Collective/nanocoder/raw/main/badges/stars.svg)|' README.md.tmp || echo "Stars badge not found, will add it"
             sed -i 's|!\[License\].*|![License](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-license.svg)|' README.md.tmp || echo "License badge not found, will add it"
@@ -122,7 +115,7 @@ jobs:
           \
           ![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg) \
           ![Coverage](https://github.com/Nano-Collective/nanocoder/raw/main/badges/coverage.svg) \
-          ![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/version.svg) \
+          ![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-version.svg) \
           ![NPM Downloads](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-downloads-monthly.svg) \
           ![Stars](https://github.com/Nano-Collective/nanocoder/raw/main/badges/stars.svg) \
           ![License](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-license.svg) \

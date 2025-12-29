@@ -1,10 +1,10 @@
+import React from 'react';
 import Status from '@/components/status';
 import WelcomeMessage from '@/components/welcome-message';
 import type {LSPConnectionStatus, MCPConnectionStatus} from '@/types/core';
 import type {ThemePreset} from '@/types/ui';
 import type {UpdateInfo} from '@/types/utils';
 import {getLogger} from '@/utils/logging';
-import React from 'react';
 
 export interface AppContainerProps {
 	shouldShowWelcome: boolean;

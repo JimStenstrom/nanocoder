@@ -17,6 +17,7 @@ function createCorrelationContext() {
 		getId: () => id,
 	};
 }
+
 import {correlationStorage} from './correlation.js';
 
 // Private CPU usage functions (used internally)

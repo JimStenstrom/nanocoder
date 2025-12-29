@@ -1,11 +1,10 @@
-import {existsSync, mkdirSync} from 'fs';
 import * as nodePath from 'node:path';
+import {existsSync, mkdirSync} from 'fs';
 import {homedir} from 'os';
 import {migrateFile} from '@/config/migration';
 import {getDataDir} from '@/config/paths';
 import {MAX_PROMPT_HISTORY_SIZE} from '@/constants';
 import {logError} from '@/utils/message-queue';
-import fs from 'fs/promises';
 import type {InputState} from './types/hooks';
 
 const ENTRY_SEPARATOR = '\n---ENTRY_SEPARATOR---\n';

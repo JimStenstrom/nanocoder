@@ -1,3 +1,4 @@
+import React from 'react';
 import {
 	ErrorMessage,
 	InfoMessage,
@@ -16,7 +17,6 @@ import {
 	startMetrics,
 	withNewCorrelationContext,
 } from '@/utils/logging';
-import React from 'react';
 
 // Global message queue function - will be set by App component
 let globalAddToChatQueue: ((component: React.ReactNode) => void) | null = null;
@@ -24,6 +24,7 @@ let componentKeyCounter = 0;
 
 // Get logger instance to avoid circular dependencies
 import {getLogger} from '@/utils/logging';
+
 const logger = getLogger();
 
 // Set the global chat queue function

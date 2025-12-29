@@ -1,9 +1,9 @@
+import React from 'react';
 import {ErrorMessage} from '@/components/message-box';
 import ToolMessage from '@/components/tool-message';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {ToolCall, ToolResult} from '@/types/index';
 import {parseToolArguments} from '@/utils/tool-args-parser';
-import React from 'react';
 
 /**
  * Display tool result with proper formatting

@@ -1,5 +1,7 @@
 import {existsSync, mkdirSync, writeFileSync} from 'fs';
+import {Box, Text} from 'ink';
 import {join} from 'path';
+import React from 'react';
 import {ErrorMessage} from '@/components/message-box';
 import {TitledBox} from '@/components/ui/titled-box';
 import {colors} from '@/config/index';
@@ -8,8 +10,6 @@ import {AgentsTemplateGenerator} from '@/init/agents-template-generator';
 import {ExistingRulesExtractor} from '@/init/existing-rules-extractor';
 import {ProjectAnalyzer} from '@/init/project-analyzer';
 import {Command} from '@/types/index';
-import {Box, Text} from 'ink';
-import React from 'react';
 
 function InitSuccess({
 	created,

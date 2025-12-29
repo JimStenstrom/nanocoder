@@ -1,3 +1,4 @@
+import React, {useEffect} from 'react';
 import {ConfigurationError, createLLMClient} from '@/client-factory';
 import {commandRegistry} from '@/commands';
 import {
@@ -28,7 +29,7 @@ import {
 } from '@/config/preferences';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
-import {type LSPInitResult, getLSPManager} from '@/lsp/index';
+import {getLSPManager, type LSPInitResult} from '@/lsp/index';
 import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CustomCommand} from '@/types/commands';
@@ -37,11 +38,9 @@ import {
 	LSPConnectionStatus,
 	MCPConnectionStatus,
 } from '@/types/core';
-import type {MCPInitResult, UserPreferences} from '@/types/index';
-import type {UpdateInfo} from '@/types/index';
+import type {MCPInitResult, UpdateInfo, UserPreferences} from '@/types/index';
 import {getLogger} from '@/utils/logging';
 import {checkForUpdates} from '@/utils/update-checker';
-import React, {useEffect} from 'react';
 
 interface UseAppInitializationProps {
 	setClient: (client: LLMClient | null) => void;

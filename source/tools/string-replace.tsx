@@ -12,6 +12,7 @@ import {jsonSchema, tool} from '@/types/core';
 import type {Colors} from '@/types/index';
 import {getCachedFileContent, invalidateCache} from '@/utils/file-cache';
 import {normalizeIndentation} from '@/utils/indentation-normalizer';
+import {isValidFilePath, resolveFilePath} from '@/utils/path-validation';
 import {getLanguageFromExtension} from '@/utils/programming-language-helper';
 import {
 	closeDiffInVSCode,
@@ -521,6 +522,27 @@ const stringReplaceValidator = async (
 	args: StringReplaceArgs,
 ): Promise<{valid: true} | {valid: false; error: string}> => {
 	const {path, old_str} = args;
+
+	// Validate path boundary first to prevent directory traversal
+	if (!isValidFilePath(path)) {
+		return {
+			valid: false,
+			error: `⚒ Invalid file path: "${path}". Path must be relative and within the project directory.`,
+		};
+	}
+
+	// Verify the resolved path stays within project boundaries
+	try {
+		const cwd = process.cwd();
+		resolveFilePath(path, cwd);
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : 'Unknown error';
+		return {
+			valid: false,
+			error: `⚒ Path validation failed: ${errorMessage}`,
+		};
+	}
 
 	// Check if file exists
 	const absPath = resolve(path);

@@ -1,19 +1,20 @@
 import {constants} from 'node:fs';
 import {access} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {Box, Text} from 'ink';
+import React from 'react';
 import ToolMessage from '@/components/tool-message';
 import {
 	CHARS_PER_TOKEN_ESTIMATE,
-	FILE_READ_CHUNKING_HINT_THRESHOLD_LINES,
 	FILE_READ_CHUNK_SIZE_LINES,
+	FILE_READ_CHUNKING_HINT_THRESHOLD_LINES,
 	FILE_READ_METADATA_THRESHOLD_LINES,
 } from '@/constants';
 import {ThemeContext} from '@/hooks/useTheme';
-import {jsonSchema, tool} from '@/types/core';
 import type {NanocoderToolExport} from '@/types/core';
+import {jsonSchema, tool} from '@/types/core';
 import {getCachedFileContent} from '@/utils/file-cache';
-import {Box, Text} from 'ink';
-import React from 'react';
+import {isValidFilePath, resolveFilePath} from '@/utils/path-validation';
 
 const executeReadFile = async (args: {
 	path: string;
@@ -321,6 +322,27 @@ const readFileValidator = async (args: {
 	start_line?: number;
 	end_line?: number;
 }): Promise<{valid: true} | {valid: false; error: string}> => {
+	// Validate path boundary first to prevent directory traversal
+	if (!isValidFilePath(args.path)) {
+		return {
+			valid: false,
+			error: `⚒ Invalid file path: "${args.path}". Path must be relative and within the project directory.`,
+		};
+	}
+
+	// Verify the resolved path stays within project boundaries
+	try {
+		const cwd = process.cwd();
+		resolveFilePath(args.path, cwd);
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : 'Unknown error';
+		return {
+			valid: false,
+			error: `⚒ Path validation failed: ${errorMessage}`,
+		};
+	}
+
 	const absPath = resolve(args.path);
 
 	try {

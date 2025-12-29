@@ -1,11 +1,10 @@
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import * as path from 'node:path';
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {homedir} from 'os';
 import {migrateFile} from '@/config/migration';
 import {getDataDir} from '@/config/paths';
-import {logError} from '@/utils/message-queue';
-
 import type {UserPreferences} from '@/types/index';
+import {logError} from '@/utils/message-queue';
 
 const PREFERENCES_FILE_NAME = 'preferences.json';
 

@@ -1,3 +1,6 @@
+import {Box, Text, useInput} from 'ink';
+import SelectInput from 'ink-select-input';
+import React, {useEffect, useState} from 'react';
 import {defaultTheme, getThemeColors} from '@/config/themes';
 import {TIMEOUT_VSCODE_EXTENSION_SKIP_MS} from '@/constants';
 import {
@@ -5,9 +8,6 @@ import {
 	isExtensionInstalled,
 	isVSCodeCliAvailable,
 } from '@/vscode/extension-installer';
-import {Box, Text, useInput} from 'ink';
-import SelectInput from 'ink-select-input';
-import React, {useState, useEffect} from 'react';
 
 interface VSCodeExtensionPromptProps {
 	onComplete: () => void;

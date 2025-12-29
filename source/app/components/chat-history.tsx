@@ -1,6 +1,6 @@
-import ChatQueue from '@/components/chat-queue';
 import {Box} from 'ink';
 import React from 'react';
+import ChatQueue from '@/components/chat-queue';
 
 export interface ChatHistoryProps {
 	/** Whether the chat has started (ready to display) */

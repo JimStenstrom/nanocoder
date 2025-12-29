@@ -3,6 +3,7 @@
  * Displays token usage statistics
  */
 
+import React from 'react';
 import {UsageDisplay} from '@/components/usage/usage-display';
 import {getToolManager} from '@/message-handler';
 import {getModelContextLimit} from '@/models/index';
@@ -14,7 +15,6 @@ import {
 	calculateToolDefinitionsTokens,
 } from '@/usage/calculator';
 import {processPromptTemplate} from '@/utils/prompt-processor';
-import React from 'react';
 
 export const usageCommand: Command = {
 	name: 'usage',

@@ -1,14 +1,14 @@
 import {spawnSync} from 'node:child_process';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname} from 'node:path';
+import {Box, Text, useFocus, useInput} from 'ink';
+import Spinner from 'ink-spinner';
+import {useEffect, useState} from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {colors} from '@/config/index';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {getLogger} from '@/utils/logging';
 import {logError} from '@/utils/message-queue';
-import {Box, Text, useFocus, useInput} from 'ink';
-import Spinner from 'ink-spinner';
-import {useEffect, useRef, useState} from 'react';
 import type {ProviderConfig} from '../types/config';
 import {type ConfigLocation, LocationStep} from './steps/location-step';
 import {McpStep} from './steps/mcp-step';

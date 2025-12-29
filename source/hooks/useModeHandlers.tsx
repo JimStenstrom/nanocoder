@@ -1,3 +1,4 @@
+import React from 'react';
 import {createLLMClient} from '@/client-factory';
 import {ErrorMessage, SuccessMessage} from '@/components/message-box';
 import {reloadAppConfig} from '@/config/index';
@@ -9,7 +10,6 @@ import {
 import {getToolManager} from '@/message-handler';
 import {LLMClient, Message} from '@/types/core';
 import type {ThemePreset} from '@/types/ui';
-import React from 'react';
 
 interface UseModeHandlersProps {
 	client: LLMClient | null;

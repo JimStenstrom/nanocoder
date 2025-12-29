@@ -1,7 +1,7 @@
-import {colors} from '@/config/index';
-import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {Box, Text, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
+import {colors} from '@/config/index';
+import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {ProviderConfig} from '../../types/config';
 import type {McpServerConfig} from '../templates/mcp-templates';
 

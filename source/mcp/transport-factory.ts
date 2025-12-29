@@ -1,9 +1,9 @@
-import {execFileSync} from 'child_process';
-import {accessSync, constants as fsConstants} from 'fs';
-import {logWarning} from '@/utils/message-queue';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {WebSocketClientTransport} from '@modelcontextprotocol/sdk/client/websocket.js';
+import {execFileSync} from 'child_process';
+import {accessSync, constants as fsConstants} from 'fs';
+import {logWarning} from '@/utils/message-queue';
 import type {MCPServer, MCPTransportType} from '../types/mcp.js';
 
 /**

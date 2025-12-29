@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import App from '@/app';
 import {render} from 'ink';
+import App from '@/app';
 
 // Parse CLI arguments
 const args = process.argv.slice(2);

@@ -1,11 +1,11 @@
+import {Box, Text, useInput} from 'ink';
+import SelectInput from 'ink-select-input';
+import {useState} from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import type {CheckpointListItem} from '@/types/checkpoint';
 import {formatRelativeTime} from '@/utils/checkpoint-utils';
-import {Box, Text, useInput} from 'ink';
-import SelectInput from 'ink-select-input';
-import {useState} from 'react';
 
 interface CheckpointSelectorProps {
 	checkpoints: CheckpointListItem[];

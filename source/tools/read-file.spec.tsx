@@ -86,7 +86,7 @@ test('ReadFileFormatter shows metadata only indicator', async t => {
 
 		const output = lastFrame();
 		t.truthy(output);
-		t.regex(output!, /metadata only/);
+		t.regex(output!, /metadata\s+only/);
 	} finally {
 		rmSync(testDir, {recursive: true, force: true});
 	}
@@ -462,24 +462,28 @@ test.serial('read_file validator rejects nonexistent files', async t => {
 
 	t.false(result.valid);
 	if (!result.valid) {
-		t.regex(result.error, /does not exist/);
+		// Path validation rejects absolute paths first
+		t.regex(result.error, /Invalid file path/);
 	}
 });
 
 test.serial('read_file validator accepts valid files', async t => {
 	t.timeout(10000);
 	const testDir = join(process.cwd(), 'test-read-validate-temp');
+	const originalCwd = process.cwd();
 
 	try {
 		mkdirSync(testDir, {recursive: true});
 		writeFileSync(join(testDir, 'test.ts'), 'content');
+		process.chdir(testDir);
 
 		const result = await readFileTool.validator!({
-			path: join(testDir, 'test.ts'),
+			path: 'test.ts',
 		});
 
 		t.true(result.valid);
 	} finally {
+		process.chdir(originalCwd);
 		rmSync(testDir, {recursive: true, force: true});
 	}
 });
@@ -487,13 +491,15 @@ test.serial('read_file validator accepts valid files', async t => {
 test.serial('read_file validator rejects start_line < 1', async t => {
 	t.timeout(10000);
 	const testDir = join(process.cwd(), 'test-read-validate-start-temp');
+	const originalCwd = process.cwd();
 
 	try {
 		mkdirSync(testDir, {recursive: true});
 		writeFileSync(join(testDir, 'test.ts'), 'content');
+		process.chdir(testDir);
 
 		const result = await readFileTool.validator!({
-			path: join(testDir, 'test.ts'),
+			path: 'test.ts',
 			start_line: 0,
 		});
 
@@ -502,6 +508,7 @@ test.serial('read_file validator rejects start_line < 1', async t => {
 			t.regex(result.error, /start_line must be >= 1/);
 		}
 	} finally {
+		process.chdir(originalCwd);
 		rmSync(testDir, {recursive: true, force: true});
 	}
 });
@@ -509,13 +516,15 @@ test.serial('read_file validator rejects start_line < 1', async t => {
 test.serial('read_file validator rejects end_line < start_line', async t => {
 	t.timeout(10000);
 	const testDir = join(process.cwd(), 'test-read-validate-range-temp');
+	const originalCwd = process.cwd();
 
 	try {
 		mkdirSync(testDir, {recursive: true});
 		writeFileSync(join(testDir, 'test.ts'), 'line1\nline2\nline3');
+		process.chdir(testDir);
 
 		const result = await readFileTool.validator!({
-			path: join(testDir, 'test.ts'),
+			path: 'test.ts',
 			start_line: 3,
 			end_line: 1,
 		});
@@ -525,6 +534,7 @@ test.serial('read_file validator rejects end_line < start_line', async t => {
 			t.regex(result.error, /end_line must be >= start_line/);
 		}
 	} finally {
+		process.chdir(originalCwd);
 		rmSync(testDir, {recursive: true, force: true});
 	}
 });
@@ -532,13 +542,15 @@ test.serial('read_file validator rejects end_line < start_line', async t => {
 test.serial('read_file validator rejects end_line > file length', async t => {
 	t.timeout(10000);
 	const testDir = join(process.cwd(), 'test-read-validate-length-temp');
+	const originalCwd = process.cwd();
 
 	try {
 		mkdirSync(testDir, {recursive: true});
 		writeFileSync(join(testDir, 'test.ts'), 'line1\nline2\nline3');
+		process.chdir(testDir);
 
 		const result = await readFileTool.validator!({
-			path: join(testDir, 'test.ts'),
+			path: 'test.ts',
 			end_line: 100,
 		});
 
@@ -547,6 +559,7 @@ test.serial('read_file validator rejects end_line > file length', async t => {
 			t.regex(result.error, /exceeds file length/);
 		}
 	} finally {
+		process.chdir(originalCwd);
 		rmSync(testDir, {recursive: true, force: true});
 	}
 });

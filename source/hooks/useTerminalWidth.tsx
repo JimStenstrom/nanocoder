@@ -1,5 +1,5 @@
-import {DEFAULT_TERMINAL_COLUMNS} from '@/constants';
 import {useEffect, useState} from 'react';
+import {DEFAULT_TERMINAL_COLUMNS} from '@/constants';
 
 type TerminalSize = 'narrow' | 'normal' | 'wide';
 

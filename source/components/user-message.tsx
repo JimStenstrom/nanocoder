@@ -1,7 +1,7 @@
-import {useTheme} from '@/hooks/useTheme';
-import type {UserMessageProps} from '@/types/index';
 import {Box, Text} from 'ink';
 import {memo} from 'react';
+import {useTheme} from '@/hooks/useTheme';
+import type {UserMessageProps} from '@/types/index';
 
 // Parse a line and return segments with file placeholders highlighted
 function parseLineWithPlaceholders(line: string) {

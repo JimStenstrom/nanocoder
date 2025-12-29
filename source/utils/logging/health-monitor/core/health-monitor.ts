@@ -21,6 +21,7 @@ import {globalPerformanceMonitor} from '../../performance.js';
 import {globalRequestTracker} from '../../request-tracker.js';
 
 const getLogger = () => loggerProvider.getLogger();
+
 import {sendAlert} from '../alerts/alert-manager.js';
 import type {
 	HealthCheckConfig,

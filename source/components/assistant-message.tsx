@@ -1,8 +1,8 @@
+import {Box, Text} from 'ink';
+import {memo, useMemo} from 'react';
 import {useTheme} from '@/hooks/useTheme';
 import {parseMarkdown} from '@/markdown-parser/index';
 import type {AssistantMessageProps} from '@/types/index';
-import {Box, Text} from 'ink';
-import {memo, useMemo} from 'react';
 
 export default memo(function AssistantMessage({
 	message,

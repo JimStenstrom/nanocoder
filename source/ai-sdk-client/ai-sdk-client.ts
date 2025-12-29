@@ -1,3 +1,6 @@
+import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
+import type {LanguageModel} from 'ai';
+import {Agent} from 'undici';
 import {TIMEOUT_SOCKET_DEFAULT_MS} from '@/constants';
 import {getModelContextLimit} from '@/models/index.js';
 import type {
@@ -9,9 +12,6 @@ import type {
 	StreamCallbacks,
 } from '@/types/index';
 import {getLogger} from '@/utils/logging';
-import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
-import type {LanguageModel} from 'ai';
-import {Agent} from 'undici';
 import {handleChat} from './chat/chat-handler.js';
 import {createProvider} from './providers/provider-factory.js';
 

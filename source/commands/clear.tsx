@@ -1,6 +1,6 @@
+import React from 'react';
 import {SuccessMessage} from '@/components/message-box';
 import {Command} from '@/types/index';
-import React from 'react';
 
 function Clear() {
 	return (

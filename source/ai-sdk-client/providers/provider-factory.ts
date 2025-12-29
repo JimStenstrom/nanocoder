@@ -1,6 +1,6 @@
-import type {AIProviderConfig} from '@/types/index';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
 import {type Agent, fetch as undiciFetch} from 'undici';
+import type {AIProviderConfig} from '@/types/index';
 
 /**
  * Creates an OpenAI-compatible provider with custom fetch using undici

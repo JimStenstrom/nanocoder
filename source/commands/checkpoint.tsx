@@ -1,3 +1,4 @@
+import React from 'react';
 import {CheckpointListDisplay} from '@/components/checkpoint-display';
 import {
 	ErrorMessage,
@@ -8,7 +9,6 @@ import {
 import {CheckpointManager} from '@/services/checkpoint-manager';
 import {Command, Message} from '@/types/index';
 import {addToMessageQueue} from '@/utils/message-queue';
-import React from 'react';
 
 // Default checkpoint manager instance (lazy-initialized)
 let defaultCheckpointManager: CheckpointManager | null = null;

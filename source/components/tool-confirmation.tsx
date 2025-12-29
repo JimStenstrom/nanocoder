@@ -1,3 +1,6 @@
+import {Box, Text, useInput} from 'ink';
+import SelectInput from 'ink-select-input';
+import React from 'react';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {getToolManager} from '@/message-handler';
@@ -6,9 +9,6 @@ import type {ToolCall} from '@/types/core';
 import {formatError} from '@/utils/error-formatter';
 import {getLogger} from '@/utils/logging';
 import {parseToolArguments} from '@/utils/tool-args-parser';
-import {Box, Text, useInput} from 'ink';
-import SelectInput from 'ink-select-input';
-import React from 'react';
 
 interface ToolConfirmationProps {
 	toolCall: ToolCall;

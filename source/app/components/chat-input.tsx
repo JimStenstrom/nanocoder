@@ -1,3 +1,6 @@
+import {Box, Text} from 'ink';
+import Spinner from 'ink-spinner';
+import React from 'react';
 import BashExecutionIndicator from '@/components/bash-execution-indicator';
 import CancellingIndicator from '@/components/cancelling-indicator';
 import ToolConfirmation from '@/components/tool-confirmation';
@@ -5,9 +8,6 @@ import ToolExecutionIndicator from '@/components/tool-execution-indicator';
 import UserInput from '@/components/user-input';
 import {useTheme} from '@/hooks/useTheme';
 import type {DevelopmentMode, ToolCall} from '@/types';
-import {Box, Text} from 'ink';
-import Spinner from 'ink-spinner';
-import React from 'react';
 
 export interface ChatInputProps {
 	// Execution state

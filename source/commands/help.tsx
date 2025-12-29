@@ -1,13 +1,13 @@
 import {readFile} from 'node:fs/promises';
+import {Box, Text} from 'ink';
 import path from 'path';
+import React from 'react';
 import {fileURLToPath} from 'url';
 import {commandRegistry} from '@/commands';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {Command} from '@/types/index';
-import {Box, Text} from 'ink';
-import React from 'react';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

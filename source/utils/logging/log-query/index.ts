@@ -3,17 +3,16 @@
  * Provides powerful filtering, searching, and analytics capabilities
  */
 
+// Re-export global storage instance (used by logging system)
+export {globalLogStorage} from './storage/log-storage';
 // Re-export types (may be used for type annotations)
 export type {
+	AggregationOptions,
+	AggregationResult,
 	LogEntry,
 	LogQuery,
 	QueryResult,
-	AggregationOptions,
-	AggregationResult,
 } from './types';
-
-// Re-export global storage instance (used by logging system)
-export {globalLogStorage} from './storage/log-storage';
 
 /**
  * Internal exports - import directly from specific modules if needed:

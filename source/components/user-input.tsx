@@ -1,3 +1,7 @@
+import {Box, Text, useFocus, useInput} from 'ink';
+import Spinner from 'ink-spinner';
+import TextInput from 'ink-text-input';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {commandRegistry} from '@/commands';
 import {DevelopmentModeIndicator} from '@/components/development-mode-indicator';
 import {useInputState} from '@/hooks/useInputState';
@@ -13,10 +17,6 @@ import {
 } from '@/utils/file-autocomplete';
 import {handleFileMention} from '@/utils/file-mention-handler';
 import {assemblePrompt} from '@/utils/prompt-processor';
-import {Box, Text, useFocus, useInput} from 'ink';
-import Spinner from 'ink-spinner';
-import TextInput from 'ink-text-input';
-import {useCallback, useEffect, useMemo, useState} from 'react';
 
 interface ChatProps {
 	onSubmit?: (message: string) => void;

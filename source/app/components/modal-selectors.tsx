@@ -1,3 +1,4 @@
+import React from 'react';
 import {ModelDatabaseDisplay} from '@/commands/model-database';
 import CheckpointSelector from '@/components/checkpoint-selector';
 import ModelSelector from '@/components/model-selector';
@@ -5,7 +6,6 @@ import ProviderSelector from '@/components/provider-selector';
 import ThemeSelector from '@/components/theme-selector';
 import type {CheckpointListItem, LLMClient} from '@/types';
 import {ConfigWizard} from '@/wizard/config-wizard';
-import React from 'react';
 
 export interface ModalSelectorsProps {
 	// State flags

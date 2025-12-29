@@ -11,6 +11,7 @@ import {ThemeContext} from '@/hooks/useTheme';
 import {jsonSchema, tool} from '@/types/core';
 import {getCachedFileContent, invalidateCache} from '@/utils/file-cache';
 import {normalizeIndentation} from '@/utils/indentation-normalizer';
+import {isValidFilePath, resolveFilePath} from '@/utils/path-validation';
 import {getLanguageFromExtension} from '@/utils/programming-language-helper';
 import {
 	closeDiffInVSCode,
@@ -207,6 +208,27 @@ const writeFileValidator = async (args: {
 	path: string;
 	content: string;
 }): Promise<{valid: true} | {valid: false; error: string}> => {
+	// Validate path boundary first to prevent directory traversal
+	if (!isValidFilePath(args.path)) {
+		return {
+			valid: false,
+			error: `⚒ Invalid file path: "${args.path}". Path must be relative and within the project directory.`,
+		};
+	}
+
+	// Verify the resolved path stays within project boundaries
+	try {
+		const cwd = process.cwd();
+		resolveFilePath(args.path, cwd);
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : 'Unknown error';
+		return {
+			valid: false,
+			error: `⚒ Path validation failed: ${errorMessage}`,
+		};
+	}
+
 	const absPath = resolve(args.path);
 
 	// Check if parent directory exists

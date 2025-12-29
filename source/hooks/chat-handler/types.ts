@@ -1,6 +1,6 @@
+import type React from 'react';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, Message, ToolCall} from '@/types/core';
-import type React from 'react';
 
 export interface UseChatHandlerProps {
 	client: LLMClient | null;

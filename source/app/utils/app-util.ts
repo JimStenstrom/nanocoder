@@ -1,3 +1,4 @@
+import React from 'react';
 import {parseInput} from '@/command-parser';
 import {commandRegistry} from '@/commands';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
@@ -10,7 +11,6 @@ import {CheckpointManager} from '@/services/checkpoint-manager';
 import {toolRegistry} from '@/tools/index';
 import type {LLMClient} from '@/types/core';
 import type {Message, MessageSubmissionOptions} from '@/types/index';
-import React from 'react';
 
 /** Command names that require special handling in the app */
 const SPECIAL_COMMANDS = {

@@ -4,7 +4,7 @@
  */
 
 import {createLogMethods} from './log-method-factory.js';
-import type {LogLevel, Logger, LoggerConfig} from './types.js';
+import type {Logger, LoggerConfig, LogLevel} from './types.js';
 
 export class LoggerProvider {
 	private static instance: LoggerProvider | null = null;

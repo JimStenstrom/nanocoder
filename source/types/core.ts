@@ -1,6 +1,5 @@
-import React from 'react';
-
 import {type Tool as AISDKTool, jsonSchema, tool} from 'ai';
+import React from 'react';
 
 export {tool, jsonSchema};
 

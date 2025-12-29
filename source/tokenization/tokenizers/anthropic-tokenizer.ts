@@ -3,8 +3,8 @@
  * Uses @anthropic-ai/tokenizer package
  */
 
-import type {Message} from '@/types/core';
 import {countTokens as anthropicCountTokens} from '@anthropic-ai/tokenizer';
+import type {Message} from '@/types/core';
 import type {Tokenizer} from '../../types/tokenization';
 
 /**

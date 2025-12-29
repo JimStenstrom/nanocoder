@@ -120,7 +120,7 @@ export function parseMarkdown(text: string, themeColors: Colors): string {
 	return result;
 }
 
+export type {Colors} from '../types/markdown-parser.js';
 // Re-export utilities for convenience
 export {decodeHtmlEntities} from './html-entities.js';
 export {parseMarkdownTable} from './table-parser.js';
-export type {Colors} from '../types/markdown-parser.js';

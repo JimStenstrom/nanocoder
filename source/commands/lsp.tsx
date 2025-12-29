@@ -1,10 +1,10 @@
+import {Box, Text} from 'ink';
+import React from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {getLSPManager} from '@/lsp/lsp-manager';
 import type {Command} from '@/types/index';
-import {Box, Text} from 'ink';
-import React from 'react';
 
 interface LSPProps {
 	status: {

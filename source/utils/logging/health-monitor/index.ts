@@ -3,6 +3,8 @@
  * Provides comprehensive health metrics and monitoring capabilities
  */
 
+// Re-export the only public API - healthChecks helper functions
+export {healthChecks} from './instances.js';
 // Re-export types
 export type {
 	HealthCheck,
@@ -10,6 +12,3 @@ export type {
 	HealthCheckResult,
 	SystemMetrics,
 } from './types.js';
-
-// Re-export the only public API - healthChecks helper functions
-export {healthChecks} from './instances.js';

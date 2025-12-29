@@ -1,6 +1,6 @@
+import type React from 'react';
 import {ErrorMessage} from '@/components/message-box';
 import {formatError} from '@/utils/error-formatter';
-import type React from 'react';
 
 /**
  * Displays an error in the chat queue with special handling for cancellation errors.

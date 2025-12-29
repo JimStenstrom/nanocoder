@@ -5,6 +5,7 @@
 
 import {ChildProcess, spawn} from 'child_process';
 import {EventEmitter} from 'events';
+import {createChildLogger} from '@/utils/logging';
 import {
 	CodeAction,
 	CodeActionParams,
@@ -42,6 +43,8 @@ interface PendingRequest {
 	reject: (error: Error) => void;
 	method: string;
 }
+
+const logger = createChildLogger({module: 'lsp-client'});
 
 export class LSPClient extends EventEmitter {
 	private process: ChildProcess | null = null;
@@ -108,8 +111,12 @@ export class LSPClient extends EventEmitter {
 			await this.sendRequest(LSPMethods.Shutdown, null);
 			// Send exit notification
 			this.sendNotification(LSPMethods.Exit, null);
-		} catch {
-			// Ignore errors during shutdown
+		} catch (error) {
+			// Errors during shutdown are expected and non-critical
+			logger.debug(
+				{err: error, server: this.config.name},
+				'LSP shutdown error (non-critical)',
+			);
 		}
 
 		// Force kill if still running
@@ -281,8 +288,12 @@ export class LSPClient extends EventEmitter {
 					textDocument: {uri},
 				})) as {items?: Diagnostic[]} | null;
 				return result?.items || [];
-			} catch {
+			} catch (error) {
 				// Fall back to cached diagnostics if pull not supported
+				logger.debug(
+					{err: error, uri},
+					'Pull diagnostics not supported, using cached',
+				);
 				return [];
 			}
 		}
@@ -446,8 +457,12 @@ export class LSPClient extends EventEmitter {
 					| JsonRpcResponse
 					| JsonRpcNotification;
 				this.handleMessage(message);
-			} catch {
-				// Ignore malformed JSON messages
+			} catch (error) {
+				// Skip malformed JSON messages but log for debugging
+				logger.debug(
+					{err: error, content: content.substring(0, 100)},
+					'Malformed JSON-RPC message',
+				);
 			}
 		}
 	}

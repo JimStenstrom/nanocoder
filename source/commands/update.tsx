@@ -1,3 +1,4 @@
+import React from 'react';
 import {
 	ErrorMessage,
 	InfoMessage,
@@ -7,7 +8,6 @@ import {toolRegistry} from '@/tools/index';
 import {Command} from '@/types/index';
 import {logError, logInfo} from '@/utils/message-queue';
 import {checkForUpdates} from '@/utils/update-checker';
-import React from 'react';
 
 /**
  * Determines if a command execution failed based on multiple signals.

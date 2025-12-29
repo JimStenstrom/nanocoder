@@ -57,13 +57,10 @@ export function serializeError(err: Error): Record<string, any> {
 							.join('\n') // Limit stack traces in production
 					: err.stack,
 			// biome-ignore lint/suspicious/noExplicitAny: Dynamic error properties
-			// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 			code: (err as any).code,
 			// biome-ignore lint/suspicious/noExplicitAny: Dynamic error properties
-			// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 			statusCode: (err as any).statusCode,
 			// biome-ignore lint/suspicious/noExplicitAny: Dynamic error properties
-			// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 			status: (err as any).status,
 		};
 	}

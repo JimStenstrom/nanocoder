@@ -1,8 +1,8 @@
+import fs from 'fs/promises';
 import path from 'path';
+import React from 'react';
 import {SuccessMessage} from '@/components/message-box';
 import {Command, Message} from '@/types/index';
-import fs from 'fs/promises';
-import React from 'react';
 
 const formatMessageContent = (message: Message) => {
 	let content = '';

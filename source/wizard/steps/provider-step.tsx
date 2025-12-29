@@ -1,10 +1,10 @@
-import {colors} from '@/config/index';
-import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {Box, Text, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
 import TextInput from 'ink-text-input';
 import {useEffect, useRef, useState} from 'react';
+import {colors} from '@/config/index';
+import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {ProviderConfig} from '../../types/config';
 import {
 	PROVIDER_TEMPLATES,
@@ -13,9 +13,9 @@ import {
 import {fetchCloudModels} from '../utils/fetch-cloud-models';
 import {
 	type CloudModelsEndpointType,
+	fetchLocalModels,
 	type LocalModel,
 	type LocalModelsEndpointType,
-	fetchLocalModels,
 } from '../utils/fetch-local-models';
 
 // Helper to check if modelsEndpoint is a cloud provider type

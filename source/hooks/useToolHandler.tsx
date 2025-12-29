@@ -1,3 +1,4 @@
+import React from 'react';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {ConversationContext} from '@/hooks/useAppState';
@@ -14,7 +15,6 @@ import {parseToolArguments} from '@/utils/tool-args-parser';
 import {createCancellationResults} from '@/utils/tool-cancellation';
 import {displayToolResult} from '@/utils/tool-result-display';
 import {getVSCodeServer} from '@/vscode/index';
-import React from 'react';
 
 interface UseToolHandlerProps {
 	pendingToolCalls: ToolCall[];

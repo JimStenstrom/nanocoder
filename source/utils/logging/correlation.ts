@@ -2,8 +2,8 @@
  * Correlation ID management for tracking requests across components
  */
 
-import {randomBytes} from 'crypto';
 import {AsyncLocalStorage} from 'async_hooks';
+import {randomBytes} from 'crypto';
 import type {
 	CorrelationContext,
 	CorrelationHttpRequest,

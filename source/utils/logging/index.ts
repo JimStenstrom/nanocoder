@@ -4,7 +4,7 @@
  */
 
 import {loggerProvider} from './logger-provider';
-import type {LogLevel, Logger, LoggerConfig} from './types';
+import type {Logger, LoggerConfig, LogLevel} from './types';
 
 /**
  * Initialize the logger with configuration
@@ -149,53 +149,48 @@ process.on('unhandledRejection', (reason, promise) => {
 	})();
 });
 
-// Re-export all modules for external use
-export type {Logger, LoggerConfig, LogLevel} from './types.js';
-
-// Export for testing purposes only
+// Export configuration utilities
 export {
+	/** @internal */
+	createConfig,
+	/** @internal */
+	getDefaultLogDirectory,
+	/** @internal */
+	getEnvironmentConfig,
+	/** @internal */
+	normalizeLogLevel,
+	/** @internal */
+	validateLogLevel,
+} from './config.js';
+// Export for testing purposes only
+// Export correlation utilities
+export {
+	/** @internal */
+	correlationMiddleware,
 	/** @internal */
 	createCorrelationFromHeaders,
 	/** @internal */
 	extractCorrelationId,
 	/** @internal */
 	formatCorrelationForLog,
-	/** @internal */
-	correlationMiddleware,
-} from './correlation.js';
-
-// Export correlation utilities
-export {
 	generateCorrelationId,
-	withNewCorrelationContext,
 	getCorrelationId,
+	withNewCorrelationContext,
 } from './correlation.js';
 
 // Export performance utilities
 export {
-	startMetrics,
-	endMetrics,
 	calculateMemoryDelta,
-	formatMemoryUsage,
+	endMetrics,
 	/** @internal */
 	formatBytes,
+	formatMemoryUsage,
 	/** @internal */
 	globalPerformanceMonitor,
+	startMetrics,
 } from './performance.js';
-
-// Export configuration utilities
-export {
-	/** @internal */
-	getDefaultLogDirectory,
-	/** @internal */
-	getEnvironmentConfig,
-	/** @internal */
-	validateLogLevel,
-	/** @internal */
-	normalizeLogLevel,
-	/** @internal */
-	createConfig,
-} from './config.js';
+// Re-export all modules for external use
+export type {Logger, LoggerConfig, LogLevel} from './types.js';
 
 // Export transport utilities (used internally only)
 // No exports from transports.js as they are only used internally
@@ -205,21 +200,18 @@ export {
 
 // Export request tracking utilities (specific instances used by other modules)
 export {healthChecks} from './health-monitor/index.js';
-
-// Internal exports that knip should ignore
-/** @internal */
-export {httpTracker} from './request-tracker.js';
-
-/** @internal */
-export {aiTracker} from './request-tracker.js';
-
-/** @internal */
-export {mcpTracker} from './request-tracker.js';
-
-export {globalRequestTracker} from './request-tracker.js';
-
 // Export log storage for tests
 export {globalLogStorage} from './log-query/index.js';
+// Internal exports that knip should ignore
+export {
+	/** @internal */
+	aiTracker,
+	globalRequestTracker,
+	/** @internal */
+	httpTracker,
+	/** @internal */
+	mcpTracker,
+} from './request-tracker.js';
 
 // RequestTracker is only used internally as default export
 // No export needed here
@@ -229,8 +221,8 @@ export {globalLogStorage} from './log-query/index.js';
 
 // Export health monitoring
 export {
-	type HealthCheckResult,
 	type HealthCheck,
-	type SystemMetrics,
 	type HealthCheckConfig,
+	type HealthCheckResult,
+	type SystemMetrics,
 } from './health-monitor/index.js';

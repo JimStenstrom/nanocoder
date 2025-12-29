@@ -1,3 +1,4 @@
+import React from 'react';
 import {executeBashTool} from '@/tools/execute-bash';
 import {fetchUrlTool} from '@/tools/fetch-url';
 import {findFilesTool} from '@/tools/find-files';
@@ -18,7 +19,6 @@ import type {
 	NanocoderToolExport,
 	ToolHandler,
 } from '@/types/index';
-import React from 'react';
 
 // Array of all tool exports from individual tool files
 // Each tool exports: { name, tool, formatter?, validator? }

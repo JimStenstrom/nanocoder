@@ -1,8 +1,8 @@
-import type {useTheme} from '@/hooks/useTheme';
-import {DEVELOPMENT_MODE_LABELS} from '@/types/core';
-import type {DevelopmentMode} from '@/types/core';
 import {Box, Text} from 'ink';
 import React from 'react';
+import type {useTheme} from '@/hooks/useTheme';
+import type {DevelopmentMode} from '@/types/core';
+import {DEVELOPMENT_MODE_LABELS} from '@/types/core';
 
 interface DevelopmentModeIndicatorProps {
 	developmentMode: DevelopmentMode;

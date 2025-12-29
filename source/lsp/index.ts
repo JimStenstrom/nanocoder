@@ -10,22 +10,22 @@
 export {type LSPServerConfig} from './lsp-client';
 
 export {
-	getLSPManager,
-	type LSPManagerConfig,
-	type LSPInitResult,
 	type DiagnosticsResult,
+	getLSPManager,
+	type LSPInitResult,
+	type LSPManagerConfig,
 } from './lsp-manager';
 
 export {
-	type Diagnostic,
-	type Position,
-	type Range,
-	type Location,
-	type CompletionItem,
 	type CodeAction,
+	type CompletionItem,
+	type Diagnostic,
+	DiagnosticSeverity,
+	type FormattingOptions,
+	type Location,
+	type Position,
+	type PublishDiagnosticsParams,
+	type Range,
 	type TextEdit,
 	type WorkspaceEdit,
-	type FormattingOptions,
-	type PublishDiagnosticsParams,
-	DiagnosticSeverity,
 } from './protocol';

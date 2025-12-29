@@ -1,7 +1,7 @@
-import {useTheme} from '@/hooks/useTheme';
-import type {ToolExecutionIndicatorProps} from '@/types/index';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
+import {useTheme} from '@/hooks/useTheme';
+import type {ToolExecutionIndicatorProps} from '@/types/index';
 
 export default function ToolExecutionIndicator({
 	toolName,

@@ -1,5 +1,5 @@
-import type {Message} from '@/types/index';
 import type {AssistantContent, ModelMessage, TextPart, ToolCallPart} from 'ai';
+import type {Message} from '@/types/index';
 import type {TestableMessage} from '../types.js';
 
 /**

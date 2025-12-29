@@ -3,8 +3,8 @@
  * Supports GPT-3.5, GPT-4, and other OpenAI models
  */
 
+import {encoding_for_model, get_encoding, type TiktokenModel} from 'tiktoken';
 import type {Message} from '@/types/core';
-import {type TiktokenModel, encoding_for_model, get_encoding} from 'tiktoken';
 import type {Tokenizer} from '../../types/tokenization';
 
 /**

@@ -7,6 +7,7 @@ import {loggerProvider} from '../../logger-provider.js';
 import type {CorrelationContext} from '../../types.js';
 
 const getLogger = () => loggerProvider.getLogger();
+
 import {checkConfigurationSystem} from '../checks/configuration-check.js';
 import {checkLoggingSystem} from '../checks/logging-check.js';
 import {checkMemory} from '../checks/memory-check.js';

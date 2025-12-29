@@ -1,3 +1,4 @@
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {loadPreferences} from '@/config/preferences';
 import {defaultTheme} from '@/config/themes';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
@@ -19,8 +20,6 @@ import type {Tokenizer} from '@/types/tokenization.js';
 import type {ThemePreset} from '@/types/ui';
 import {BoundedMap} from '@/utils/bounded-map';
 import {getLogger} from '@/utils/logging';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import React from 'react';
 
 export interface ConversationContext {
 	/**

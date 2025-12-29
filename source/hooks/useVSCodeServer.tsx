@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises';
-import {DEFAULT_PORT, VSCodeServer, getVSCodeServer} from '@/vscode/index';
-import type {DiagnosticInfo} from '@/vscode/protocol';
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {DEFAULT_PORT, getVSCodeServer, VSCodeServer} from '@/vscode/index';
+import type {DiagnosticInfo} from '@/vscode/protocol';
 
 interface UseVSCodeServerProps {
 	enabled: boolean;

@@ -1,23 +1,24 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignore": [
-			"dist",
-			"pnpm-lock.yaml",
-			"package-lock.json",
-			"yarn.lock",
-			"coverage",
-			"agents",
-			"node_modules",
-			"plugins",
-			"**/*.spec.ts",
-			"**/*.spec.tsx",
-			".husky"
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/pnpm-lock.yaml",
+			"!**/package-lock.json",
+			"!**/yarn.lock",
+			"!**/coverage",
+			"!**/agents",
+			"!**/node_modules",
+			"!**/plugins",
+			"!**/*.spec.ts",
+			"!**/*.spec.tsx",
+			"!**/.husky"
 		]
 	},
 	"formatter": {
@@ -27,9 +28,7 @@
 		"lineEnding": "lf",
 		"lineWidth": 80
 	},
-	"organizeImports": {
-		"enabled": true
-	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -52,13 +51,13 @@
 			"suspicious": {
 				"noExplicitAny": "warn",
 				"noArrayIndexKey": "off",
-				"noConsoleLog": "off",
 				"noGlobalIsNan": "off",
 				"noRedeclare": "off",
 				"noUnsafeDeclarationMerging": "off",
 				"noShadowRestrictedNames": "off",
 				"noAssignInExpressions": "off",
-				"noControlCharactersInRegex": "off"
+				"noControlCharactersInRegex": "off",
+				"noConsole": { "level": "off", "options": { "allow": ["log"] } }
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "error",

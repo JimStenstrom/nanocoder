@@ -2,13 +2,13 @@
  * Usage display component for /usage command
  */
 
+import {Box, Text} from 'ink';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import type {Message} from '@/types/core.js';
 import type {TokenBreakdown} from '@/types/usage.js';
 import {formatTokenCount, getUsageStatusColor} from '@/usage/calculator.js';
-import {Box, Text} from 'ink';
 import {ProgressBar} from './progress-bar.js';
 
 interface UsageDisplayProps {

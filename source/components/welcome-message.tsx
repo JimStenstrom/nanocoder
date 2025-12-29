@@ -1,15 +1,13 @@
+import fs from 'fs';
 import {Box, Text} from 'ink';
+import BigText from 'ink-big-text';
+import Gradient from 'ink-gradient';
+import path from 'path';
 import {memo} from 'react';
-
+import {fileURLToPath} from 'url';
 import {TitledBox} from '@/components/ui/titled-box';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
-
-import fs from 'fs';
-import path from 'path';
-import {fileURLToPath} from 'url';
-import BigText from 'ink-big-text';
-import Gradient from 'ink-gradient';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,3 +1,5 @@
+import type {LanguageModel} from 'ai';
+import {generateText, stepCountIs} from 'ai';
 import {MAX_TOOL_STEPS} from '@/constants';
 import type {
 	AIProviderConfig,
@@ -16,8 +18,6 @@ import {
 	startMetrics,
 	withNewCorrelationContext,
 } from '@/utils/logging';
-import type {LanguageModel} from 'ai';
-import {generateText, stepCountIs} from 'ai';
 import {convertToModelMessages} from '../converters/message-converter.js';
 import {
 	convertAISDKToolCalls,
@@ -259,8 +259,14 @@ export async function handleChat(
 				// Check if there's an underlying RetryError with the real cause
 				const rootError = extractRootError(error);
 				if (rootError === error) {
-					// No underlying error - this is just a cancellation
-					throw new Error('Operation was cancelled');
+					// No underlying error - check if user actually cancelled
+					if (signal?.aborted) {
+						throw new Error('Operation was cancelled');
+					}
+					// Model returned empty response without cancellation
+					throw new Error(
+						'Model returned empty response. This may indicate the model is not responding correctly or the prompt was unclear.',
+					);
 				}
 				// There's a real error underneath, parse it
 				const userMessage = parseAPIError(rootError);

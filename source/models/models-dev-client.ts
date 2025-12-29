@@ -3,10 +3,10 @@
  * Fetches and caches model metadata
  */
 
+import {request} from 'undici';
 import {TIMEOUT_HTTP_BODY_MS, TIMEOUT_HTTP_HEADERS_MS} from '@/constants';
 import {formatError} from '@/utils/error-formatter';
 import {getLogger} from '@/utils/logging';
-import {request} from 'undici';
 import {readCache, writeCache} from './models-cache.js';
 import type {ModelInfo, ModelsDevDatabase} from './models-types.js';
 

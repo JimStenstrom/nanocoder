@@ -10,9 +10,9 @@ import {createLogMethods} from './log-method-factory.js';
 import {createRedactionRules, redactLogEntry} from './redaction.js';
 import type {
 	EnvironmentTransportConfig,
-	LogLevel,
 	Logger,
 	LoggerConfig,
+	LogLevel,
 	PiiRedactionRules,
 	PinoTransportOptions,
 } from './types.js';

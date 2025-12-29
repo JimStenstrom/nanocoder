@@ -1,6 +1,6 @@
+import React from 'react';
 import {InfoMessage} from '@/components/message-box';
 import {Command} from '@/types/index';
-import React from 'react';
 
 export const exitCommand: Command = {
 	name: 'exit',

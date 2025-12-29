@@ -1,9 +1,9 @@
 import {execSync} from 'child_process';
 import {existsSync} from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import {MAX_CHECKPOINT_FILES} from '@/constants';
 import {logWarning} from '@/utils/message-queue';
-import * as fs from 'fs/promises';
 
 /**
  * Service for capturing and restoring file snapshots for checkpoints

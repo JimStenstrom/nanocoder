@@ -1,3 +1,94 @@
+# 1.20.0
+
+- Added comprehensive testing achieving 90%+ code coverage across components, hooks, tools, and utilities. Tests now include unit and integration coverage for critical paths.
+
+- Added automated PR checks workflow with format, type, lint, and test validation. Pull requests now get automatic quality checks. Thanks to @Avtrkrb.
+
+- Added LSP support for Deno, GraphQL, Docker/Docker Compose, and Markdown language servers with automatic project detection. Thanks to @yashksaini-coder.
+
+- Added auto-fetch models feature in setup wizard - providers can now automatically fetch available models during configuration. Thanks to @JimStenstrom.
+
+- Added git workflow integration tools including smart commit message generation, PR template creation, branch naming suggestions, and enhanced status reporting. Thanks to @JimStenstrom.
+
+- Added file content caching to reduce tool confirmation delays and improve performance. Thanks to @JimStenstrom.
+
+- Added path boundary validation to file manipulation tools to prevent directory traversal attacks.
+
+- Added granular debug logging with structured pino logger throughout catch blocks for better error tracking. Thanks to @JimStenstrom and @abhisek1221.
+
+- Upgraded Biome to v2.3.10 with updated configuration format.
+
+- Upgraded Ink to 6.6.0 for improved terminal rendering.
+
+- Upgraded AI SDK and MCP SDK dependencies to latest versions.
+
+- Refactored App component into focused modules (useAppState, useAppInitialization, useChatHandler, useToolHandler, useModeHandlers) for better maintainability.
+
+- Refactored message components to unify structure and fix memoization inconsistency. Thanks to @abhisek1221.
+
+- Refactored handleMessageSubmission into focused handler functions for better code organization. Thanks to @JimStenstrom.
+
+- Refactored health-monitor, log-query, and AISDKClient into smaller focused modules.
+
+- Renamed multiple files to kebab-case for consistency (AISDKClient.ts → ai-sdk-client.ts, appUtils.ts → app-util.ts, conversationState.ts → conversation-state.ts). Thanks to @JimStenstrom.
+
+- Replaced sync fs operations with async readFile for better performance. Thanks to @namar0x0309.
+
+- Improved tool formatter indentation for better readability.
+
+- Extracted magic numbers to named constants for better code clarity. Thanks to @JimStenstrom.
+
+- Enhanced validateRestorePath to check directory writability. Thanks to @yashksaini-coder.
+
+- Fix: Resolved "Interrupted by user" error appearing on empty model responses.
+
+- Fix: Command completion now prioritizes prefix matches over suffix matches for more intuitive autocomplete.
+
+- Fix: Resolved duplicate React keys issue by using useRef for component key counter. Thanks to @JimStenstrom.
+
+- Fix: Development mode context synchronization prevents autoaccept race conditions. Thanks to @JimStenstrom.
+
+- Fix: Bounded completedActions array to prevent memory growth during long sessions. Thanks to @JimStenstrom.
+
+- Fix: User input cycling now works correctly.
+
+- Fix: Slash + Tab now shows all available commands instead of subset.
+
+- Fix: Command injection vulnerabilities in shell commands resolved.
+
+- Fix: Large paste truncation in slow terminals resolved. Thanks to @Alvaro842DEV.
+
+- Fix: find_files tool now correctly recognizes all pattern types.
+
+- Fix: Tool over-fetching in find and search tools reduced for better performance. Thanks to @pulkitgarg04.
+
+- Fix: Prompt history handling improved with better state management.
+
+- Fix: Paragraphs now render correctly in user messages.
+
+- Fix: Added helpful error messages for missing MCP server commands. Thanks to @JimStenstrom.
+
+- Fix: Size limits added to unbounded caches to prevent memory issues.
+
+- Fix: Resolved several security scanning alerts for string escaping and encoding. Thanks to @Avtrkrb.
+
+- Fix: Switched to crypto.randomUUID and crypto.randomBytes for secure ID generation. Thanks to @JimStenstrom and @abhisek1221.
+
+- Fix: Broken pino logging documentation link in README.
+
+- Fix: Husky pre-commit hook configuration improved. Thanks to @Avtrkrb.
+
+- Fix: Silent configuration issues resolved. Thanks to @sanjeev55999999.
+
+
+- Fix: Added debug logging to empty catch blocks in LSP modules to improve error tracking and debugging. Thanks to @JimStenstrom.
+
+- Fix: Prevented process hang when exiting security disclaimer for better user experience. Thanks to @JimStenstrom.
+
+- Fix: Handled line wrap in read-file metadata test to ensure proper test reliability. Thanks to @JimStenstrom.
+
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+
 # 1.19.2
 
 - Refactored file editing tools by replacing line-based tools with modern content-based editing for better reliability and context efficiency.
