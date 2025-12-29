@@ -308,12 +308,27 @@ export function ProviderStep({
 			setCurrentValue(newAnswers[nextField?.name] || nextField?.default || '');
 		} else {
 			// Validate models array is not empty before building config
+			// For Azure, deployment can be extracted from the endpoint URL
+			let hasModels = false;
 			const modelsValue = newAnswers.model || '';
 			const modelsArray = modelsValue
 				.split(',')
 				.map(m => m.trim())
 				.filter(Boolean);
-			if (modelsArray.length === 0) {
+			if (modelsArray.length > 0) {
+				hasModels = true;
+			}
+
+			// Check if Azure deployment can be extracted from endpoint URL
+			if (!hasModels && selectedTemplate.id === 'azure-openai') {
+				const endpoint = newAnswers.endpoint || '';
+				const match = endpoint.match(/\/openai\/deployments\/([^/]+)/);
+				if (match && match[1]) {
+					hasModels = true;
+				}
+			}
+
+			if (!hasModels) {
 				setError('At least one model name is required');
 				return;
 			}

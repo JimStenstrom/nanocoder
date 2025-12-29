@@ -145,7 +145,17 @@ export class AISDKClient implements LLMClient {
 		signal?: AbortSignal,
 	): Promise<LLMChatResponse> {
 		// Get the language model instance from the provider
-		const model = this.provider(this.currentModel) as unknown as LanguageModel;
+		// Azure requires explicit .chat() to use /chat/completions endpoint
+		// OpenAI-compatible works with direct call or .chatModel()
+		let model: LanguageModel;
+		if (this.providerConfig.providerType === 'azure') {
+			// Azure: use .chat() for /chat/completions endpoint
+			const azureProvider = this.provider as ReturnType<typeof createAzure>;
+			model = azureProvider.chat(this.currentModel) as unknown as LanguageModel;
+		} else {
+			// OpenAI-compatible: direct call works for chat
+			model = this.provider(this.currentModel) as unknown as LanguageModel;
+		}
 
 		// Delegate to chat handler
 		return await handleChat({

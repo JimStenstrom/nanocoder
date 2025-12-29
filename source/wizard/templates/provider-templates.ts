@@ -229,27 +229,20 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 	{
 		id: 'azure-openai',
 		name: 'Azure OpenAI',
+		// Note: No modelsEndpoint - Azure requires deployment names, not model names
+		// Users can paste full URL and we extract base URL + deployment
 		fields: [
 			{
-				name: 'resourceName',
-				prompt: 'Azure Resource Name',
+				name: 'endpoint',
+				prompt:
+					'Endpoint URL (paste full URL from Azure Portal, e.g., https://myresource.cognitiveservices.azure.com/openai/deployments/my-deployment/...)',
 				required: true,
 			},
 			{
 				name: 'apiKey',
-				prompt: 'API Key',
+				prompt: 'API Key (from Azure Portal → Keys and Endpoint)',
 				required: true,
 				sensitive: true,
-			},
-			{
-				name: 'deployment',
-				prompt: 'Deployment Name',
-				required: true,
-			},
-			{
-				name: 'apiVersion',
-				prompt: 'API Version',
-				default: '2024-02-15-preview',
 			},
 			{
 				name: 'providerName',
@@ -257,14 +250,37 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 				default: 'Azure OpenAI',
 			},
 		],
-		buildConfig: answers => ({
-			name: answers.providerName || 'Azure OpenAI',
-			providerType: 'azure',
-			resourceName: answers.resourceName,
-			apiKey: answers.apiKey,
-			models: [answers.deployment],
-			apiVersion: answers.apiVersion || '2024-02-15-preview',
-		}),
+		buildConfig: answers => {
+			// Parse the endpoint URL to extract base URL and deployment name
+			const url = answers.endpoint.trim();
+			let baseUrl = url;
+			let deployment = '';
+
+			// Match pattern: .../openai/deployments/{deployment}/...
+			const match = url.match(
+				/^(https:\/\/[^/]+)\/openai\/deployments\/([^/]+)/,
+			);
+			if (match) {
+				baseUrl = match[1];
+				deployment = match[2];
+			} else {
+				// Just a base URL, no deployment in path - strip any trailing path
+				try {
+					const parsed = new URL(url);
+					baseUrl = `${parsed.protocol}//${parsed.host}`;
+				} catch {
+					// Keep as-is if URL parsing fails
+				}
+			}
+
+			return {
+				name: answers.providerName || 'Azure OpenAI',
+				providerType: 'azure',
+				baseUrl,
+				apiKey: answers.apiKey,
+				models: deployment ? [deployment] : [],
+			};
+		},
 	},
 	{
 		id: 'anthropic',

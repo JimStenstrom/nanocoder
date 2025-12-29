@@ -152,37 +152,67 @@ test('custom template: includes timeout', t => {
 });
 
 // Azure OpenAI tests
-test('azure-openai template: basic configuration', t => {
+test('azure-openai template: extracts deployment from full URL', t => {
 	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
 	t.truthy(template);
 
 	const config = template!.buildConfig({
-		resourceName: 'my-resource',
+		endpoint:
+			'https://jim-mjrgv2i9-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview',
 		apiKey: 'test-key',
-		deployment: 'gpt-4-deployment',
 		providerName: 'Azure OpenAI',
 	});
 
 	t.is(config.name, 'Azure OpenAI');
 	t.is(config.providerType, 'azure');
-	t.is(config.resourceName, 'my-resource');
+	t.is(
+		config.baseUrl,
+		'https://jim-mjrgv2i9-eastus2.cognitiveservices.azure.com',
+	);
 	t.is(config.apiKey, 'test-key');
-	t.deepEqual(config.models, ['gpt-4-deployment']);
-	t.is(config.apiVersion, '2024-02-15-preview');
+	t.deepEqual(config.models, ['gpt-5-nano']);
 });
 
-test('azure-openai template: custom api version', t => {
+test('azure-openai template: handles base URL only', t => {
 	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
 	t.truthy(template);
 
 	const config = template!.buildConfig({
-		resourceName: 'my-resource',
+		endpoint: 'https://myresource.openai.azure.com',
 		apiKey: 'test-key',
-		deployment: 'gpt-4-deployment',
-		apiVersion: '2024-06-01',
 	});
 
-	t.is(config.apiVersion, '2024-06-01');
+	t.is(config.baseUrl, 'https://myresource.openai.azure.com');
+	t.deepEqual(config.models, []);
+});
+
+test('azure-openai template: strips trailing paths from base URL', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		endpoint: 'https://myresource.openai.azure.com/some/other/path',
+		apiKey: 'test-key',
+	});
+
+	t.is(config.baseUrl, 'https://myresource.openai.azure.com');
+});
+
+test('azure-openai template: cognitiveservices endpoint', t => {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'azure-openai');
+	t.truthy(template);
+
+	const config = template!.buildConfig({
+		endpoint:
+			'https://myresource-eastus2.cognitiveservices.azure.com/openai/deployments/my-gpt4/chat/completions',
+		apiKey: 'test-key',
+	});
+
+	t.is(
+		config.baseUrl,
+		'https://myresource-eastus2.cognitiveservices.azure.com',
+	);
+	t.deepEqual(config.models, ['my-gpt4']);
 });
 
 test('azure-openai template: default provider name', t => {
@@ -190,9 +220,9 @@ test('azure-openai template: default provider name', t => {
 	t.truthy(template);
 
 	const config = template!.buildConfig({
-		resourceName: 'my-resource',
+		endpoint:
+			'https://myresource.openai.azure.com/openai/deployments/gpt-4o/chat/completions',
 		apiKey: 'test-key',
-		deployment: 'gpt-4-deployment',
 	});
 
 	t.is(config.name, 'Azure OpenAI');
@@ -203,9 +233,9 @@ test('azure-openai template: custom provider name', t => {
 	t.truthy(template);
 
 	const config = template!.buildConfig({
-		resourceName: 'my-resource',
+		endpoint:
+			'https://myresource.openai.azure.com/openai/deployments/gpt-4o/chat/completions',
 		apiKey: 'test-key',
-		deployment: 'gpt-4-deployment',
 		providerName: 'My Azure Instance',
 	});
 
