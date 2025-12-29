@@ -283,13 +283,13 @@ test.serial('getConfigDir uses NANOCODER_HOME override', t => {
 	);
 });
 
-test.serial('getConfigDir darwin uses Application Support', t => {
+test.serial('getConfigDir darwin uses Application Support/config', t => {
 	testPathGetter(
 		t,
 		'darwin',
 		{NANOCODER_CONFIG_DIR: undefined, NANOCODER_HOME: undefined, HOME: '/Users/test'},
 		getConfigDir,
-		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder'),
+		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'config'),
 	);
 });
 
@@ -322,7 +322,7 @@ test.serial('getConfigDir linux falls back to ~/.config', t => {
 	);
 });
 
-test.serial('getConfigDir win32 uses APPDATA', t => {
+test.serial('getConfigDir win32 uses APPDATA/config', t => {
 	testPathGetter(
 		t,
 		'win32',
@@ -332,7 +332,7 @@ test.serial('getConfigDir win32 uses APPDATA', t => {
 			APPDATA: path.join('C:', 'Users', 'test', 'AppData', 'Roaming'),
 		},
 		getConfigDir,
-		path.join('C:', 'Users', 'test', 'AppData', 'Roaming', 'nanocoder'),
+		path.join('C:', 'Users', 'test', 'AppData', 'Roaming', 'nanocoder', 'config'),
 	);
 });
 
@@ -358,13 +358,13 @@ test.serial('getDataDir uses NANOCODER_HOME override', t => {
 	);
 });
 
-test.serial('getDataDir darwin uses Application Support', t => {
+test.serial('getDataDir darwin uses Application Support/data', t => {
 	testPathGetter(
 		t,
 		'darwin',
 		{NANOCODER_DATA_DIR: undefined, NANOCODER_HOME: undefined, HOME: '/Users/test'},
 		getDataDir,
-		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder'),
+		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'data'),
 	);
 });
 
@@ -397,7 +397,7 @@ test.serial('getDataDir linux falls back to ~/.local/share', t => {
 	);
 });
 
-test.serial('getDataDir win32 uses APPDATA', t => {
+test.serial('getDataDir win32 uses APPDATA/data', t => {
 	testPathGetter(
 		t,
 		'win32',
@@ -407,7 +407,7 @@ test.serial('getDataDir win32 uses APPDATA', t => {
 			APPDATA: path.join('C:', 'Users', 'test', 'AppData', 'Roaming'),
 		},
 		getDataDir,
-		path.join('C:', 'Users', 'test', 'AppData', 'Roaming', 'nanocoder'),
+		path.join('C:', 'Users', 'test', 'AppData', 'Roaming', 'nanocoder', 'data'),
 	);
 });
 
@@ -578,13 +578,13 @@ test.serial('getLogsDir win32 uses APPDATA/logs', t => {
 
 // getSessionsDir - Sessions subdirectory under data
 
-test.serial('getSessionsDir returns data/sessions', t => {
+test.serial('getSessionsDir darwin returns data/sessions', t => {
 	testPathGetter(
 		t,
 		'darwin',
 		{NANOCODER_DATA_DIR: undefined, NANOCODER_HOME: undefined, HOME: '/Users/test'},
 		getSessionsDir,
-		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'sessions'),
+		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'data', 'sessions'),
 	);
 });
 
@@ -605,13 +605,13 @@ test.serial('getSessionsDir linux returns XDG data/sessions', t => {
 
 // getGlobalCommandsDir - Commands subdirectory under data
 
-test.serial('getGlobalCommandsDir returns data/commands', t => {
+test.serial('getGlobalCommandsDir darwin returns data/commands', t => {
 	testPathGetter(
 		t,
 		'darwin',
 		{NANOCODER_DATA_DIR: undefined, NANOCODER_HOME: undefined, HOME: '/Users/test'},
 		getGlobalCommandsDir,
-		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'commands'),
+		path.join('/Users/test', 'Library', 'Application Support', 'nanocoder', 'data', 'commands'),
 	);
 });
 

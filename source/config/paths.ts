@@ -30,9 +30,9 @@ import {join} from 'path';
  * Contains: agents.config.json, rules.json
  *
  * Platform locations:
- * - macOS: ~/Library/Application Support/nanocoder/
+ * - macOS: ~/Library/Application Support/nanocoder/config/
  * - Linux: ~/.config/nanocoder/ (XDG_CONFIG_HOME)
- * - Windows: %APPDATA%\nanocoder\
+ * - Windows: %APPDATA%\nanocoder\config\
  */
 export function getConfigDir(): string {
 	// Explicit override takes highest priority
@@ -47,11 +47,20 @@ export function getConfigDir(): string {
 
 	switch (process.platform) {
 		case 'darwin':
-			return join(homedir(), 'Library', 'Application Support', 'nanocoder');
+			// Use config/ subdirectory to separate from data/
+			return join(
+				homedir(),
+				'Library',
+				'Application Support',
+				'nanocoder',
+				'config',
+			);
 		case 'win32':
+			// Use config/ subdirectory to separate from data/
 			return join(
 				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'),
 				'nanocoder',
+				'config',
 			);
 		default:
 			// Linux: Use XDG_CONFIG_HOME (only checked on Linux per XDG spec)
@@ -67,9 +76,9 @@ export function getConfigDir(): string {
  * Contains: preferences.json, usage.json, history, sessions, commands
  *
  * Platform locations:
- * - macOS: ~/Library/Application Support/nanocoder/
+ * - macOS: ~/Library/Application Support/nanocoder/data/
  * - Linux: ~/.local/share/nanocoder/ (XDG_DATA_HOME)
- * - Windows: %APPDATA%\nanocoder\
+ * - Windows: %APPDATA%\nanocoder\data\
  */
 export function getDataDir(): string {
 	// Explicit override takes highest priority
@@ -84,11 +93,20 @@ export function getDataDir(): string {
 
 	switch (process.platform) {
 		case 'darwin':
-			return join(homedir(), 'Library', 'Application Support', 'nanocoder');
+			// Use data/ subdirectory to separate from config/
+			return join(
+				homedir(),
+				'Library',
+				'Application Support',
+				'nanocoder',
+				'data',
+			);
 		case 'win32':
+			// Use data/ subdirectory to separate from config/
 			return join(
 				process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'),
 				'nanocoder',
+				'data',
 			);
 		default:
 			// Linux: Use XDG_DATA_HOME (only checked on Linux per XDG spec)
