@@ -1,5 +1,6 @@
 import * as nodePath from 'node:path';
 import {existsSync, mkdirSync} from 'fs';
+import fs from 'fs/promises';
 import {homedir} from 'os';
 import {migrateFile} from '@/config/migration';
 import {getDataDir} from '@/config/paths';
