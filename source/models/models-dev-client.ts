@@ -227,6 +227,10 @@ async function findModelById(modelId: string): Promise<ModelInfo | null> {
 
 	// Search through all providers
 	for (const [_providerId, provider] of Object.entries(data)) {
+		// Skip providers with no models object (defensive coding)
+		if (!provider.models) {
+			continue;
+		}
 		const model = provider.models[modelId];
 		if (model) {
 			return {
@@ -261,6 +265,10 @@ async function findModelByName(modelName: string): Promise<ModelInfo | null> {
 
 	// Search through all providers
 	for (const [_providerId, provider] of Object.entries(data)) {
+		// Skip providers with no models object (defensive coding)
+		if (!provider.models) {
+			continue;
+		}
 		for (const [_modelId, model] of Object.entries(provider.models)) {
 			if (
 				model.id.toLowerCase().includes(lowerName) ||

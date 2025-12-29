@@ -1,6 +1,6 @@
 import test from 'ava';
-import { unlink, writeFile, readFile, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { unlink, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { CachedModelsData } from './models-types.js';
@@ -9,30 +9,31 @@ import {
 	writeCache,
 } from './models-cache.js';
 
-// Get the actual cache file path that will be used
-// We need to import dynamically to get the actual path at runtime
-let actualCachePath: string;
-
-async function getCacheFilePath(): Promise<string> {
-	// Import dynamically to avoid module resolution issues during testing
-	const { xdgCache } = await import('xdg-basedir');
-	const path = await import('node:path');
-
-	const DEFAULT_CACHE_DIR =
-		process.platform === 'darwin'
-			? path.join(process.env.HOME || '~', 'Library', 'Caches')
-			: path.join(process.env.HOME || '~', '.cache');
-
-	const cacheBase = xdgCache || DEFAULT_CACHE_DIR;
-	return path.join(cacheBase, 'nanocoder', 'models.json');
-}
+// Use environment variable to isolate cache directory for tests
+const testCacheDir = join(tmpdir(), `nanocoder-test-cache-${Date.now()}`);
+const actualCachePath = join(testCacheDir, 'models.json');
 
 // ============================================================================
 // Setup and Teardown
 // ============================================================================
 
-test.before(async () => {
-	actualCachePath = await getCacheFilePath();
+test.before(() => {
+	// Set NANOCODER_HOME to isolate tests from real user data
+	// This prevents migration from finding legacy files in ~/Library/Caches/nanocoder/
+	process.env.NANOCODER_HOME = testCacheDir;
+	// Also set explicit cache dir for extra certainty
+	process.env.NANOCODER_CACHE_DIR = testCacheDir;
+	mkdirSync(testCacheDir, {recursive: true});
+});
+
+test.after.always(() => {
+	// Clean up test cache directory
+	if (existsSync(testCacheDir)) {
+		rmSync(testCacheDir, {recursive: true, force: true});
+	}
+	// Clean up environment
+	delete process.env.NANOCODER_CACHE_DIR;
+	delete process.env.NANOCODER_HOME;
 });
 
 test.afterEach.always(async () => {
@@ -50,7 +51,7 @@ test.afterEach.always(async () => {
 // Tests for readCache
 // ============================================================================
 
-test('readCache returns null when cache file does not exist', async t => {
+test.serial('readCache returns null when cache file does not exist', async t => {
 	// Ensure cache file doesn't exist
 	if (existsSync(actualCachePath)) {
 		await unlink(actualCachePath);
@@ -60,7 +61,7 @@ test('readCache returns null when cache file does not exist', async t => {
 	t.is(result, null);
 });
 
-test('readCache returns valid cached data', async t => {
+test.serial('readCache returns valid cached data', async t => {
 	const mockData: CachedModelsData = {
 		data: { models: [] } as any,
 		fetchedAt: Date.now() - 1000,
@@ -85,7 +86,7 @@ test('readCache returns valid cached data', async t => {
 	t.is(result?.expiresAt, mockData.expiresAt);
 });
 
-test('readCache returns null when cache is expired', async t => {
+test.serial('readCache returns null when cache is expired', async t => {
 	const expiredData: CachedModelsData = {
 		data: { models: [] } as any,
 		fetchedAt: Date.now() - 1000000,
@@ -107,7 +108,7 @@ test('readCache returns null when cache is expired', async t => {
 	t.is(result, null);
 });
 
-test('readCache returns null on JSON parse error', async t => {
+test.serial('readCache returns null on JSON parse error', async t => {
 	// Ensure directory exists
 	const dir = join(actualCachePath, '..');
 	try {
@@ -127,7 +128,7 @@ test('readCache returns null on JSON parse error', async t => {
 // Tests for writeCache
 // ============================================================================
 
-test('writeCache writes cache data correctly', async t => {
+test.serial('writeCache writes cache data correctly', async t => {
 	const mockData = { models: [{ id: 'test-model' }] } as any;
 
 	await writeCache(mockData);
@@ -146,7 +147,7 @@ test('writeCache writes cache data correctly', async t => {
 	t.true(writtenData.expiresAt > Date.now());
 });
 
-test('writeCache creates directory if it does not exist', async t => {
+test.serial('writeCache creates directory if it does not exist', async t => {
 	const mockData = { models: [] } as any;
 
 	// This should not throw even if directory doesn't exist
@@ -162,7 +163,7 @@ test('writeCache creates directory if it does not exist', async t => {
 // Integration-like tests
 // ============================================================================
 
-test('cache expiration is calculated correctly', async t => {
+test.serial('cache expiration is calculated correctly', async t => {
 	const mockData = { models: [] } as any;
 	const now = Date.now();
 
@@ -179,7 +180,7 @@ test('cache expiration is calculated correctly', async t => {
 	t.true(writtenData.expiresAt <= now + CACHE_MODELS_EXPIRATION_MS + 100);
 });
 
-test('readCache and writeCache round-trip correctly', async t => {
+test.serial('readCache and writeCache round-trip correctly', async t => {
 	const originalData = {
 		models: [
 			{ id: 'model1', name: 'Test Model 1' },
@@ -197,7 +198,7 @@ test('readCache and writeCache round-trip correctly', async t => {
 	t.deepEqual(readResult?.data, originalData);
 });
 
-test('writeCache overwrites existing cache', async t => {
+test.serial('writeCache overwrites existing cache', async t => {
 	// Write first cache
 	const firstData = { models: [{ id: 'model1' }] } as any;
 	await writeCache(firstData);

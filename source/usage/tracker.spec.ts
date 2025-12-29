@@ -48,14 +48,16 @@ function createTestDir(): string {
 }
 
 let originalEnv: NodeJS.ProcessEnv;
+let currentTestDir: string | undefined;
 
 test.before(() => {
 	originalEnv = {...process.env};
 });
 
 test.beforeEach(() => {
-	const testDir = createTestDir();
-	process.env.XDG_CONFIG_HOME = testDir;
+	currentTestDir = createTestDir();
+	// Use NANOCODER_DATA_DIR for data storage (storage.ts uses getDataDir())
+	process.env.NANOCODER_DATA_DIR = currentTestDir;
 	clearCurrentSession(); // Clear any lingering session from previous tests
 });
 
@@ -63,12 +65,13 @@ test.afterEach(() => {
 	clearCurrentSession();
 	clearUsageData();
 	try {
-		if (process.env.XDG_CONFIG_HOME) {
-			fs.rmSync(process.env.XDG_CONFIG_HOME, {recursive: true, force: true});
+		if (currentTestDir) {
+			fs.rmSync(currentTestDir, {recursive: true, force: true});
 		}
 	} catch (error) {
 		// Ignore cleanup errors
 	}
+	delete process.env.NANOCODER_DATA_DIR;
 });
 
 test.after(() => {

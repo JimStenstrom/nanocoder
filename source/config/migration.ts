@@ -189,6 +189,11 @@ export function cleanupEmptyDir(dirPath: string): void {
  * Returns paths in priority order (most likely to least likely).
  */
 export function getLegacyConfigPaths(fileName: string): string[] {
+	// Skip legacy paths if user has explicitly set custom paths via env vars
+	if (process.env.NANOCODER_HOME || process.env.NANOCODER_CONFIG_DIR) {
+		return [];
+	}
+
 	const home = homedir();
 	const paths: string[] = [];
 
@@ -216,6 +221,11 @@ export function getLegacyConfigPaths(fileName: string): string[] {
  * Returns paths in priority order.
  */
 export function getLegacyDataPaths(fileName: string): string[] {
+	// Skip legacy paths if user has explicitly set custom paths via env vars
+	if (process.env.NANOCODER_HOME || process.env.NANOCODER_DATA_DIR) {
+		return [];
+	}
+
 	const home = homedir();
 	const paths: string[] = [];
 
@@ -253,6 +263,12 @@ export function getLegacyDataPaths(fileName: string): string[] {
  * Get legacy cache paths for a specific file.
  */
 export function getLegacyCachePaths(fileName: string): string[] {
+	// Skip legacy paths if user has explicitly set custom paths via env vars
+	// This allows tests and custom deployments to avoid migration behavior
+	if (process.env.NANOCODER_HOME || process.env.NANOCODER_CACHE_DIR) {
+		return [];
+	}
+
 	const home = homedir();
 	const paths: string[] = [];
 

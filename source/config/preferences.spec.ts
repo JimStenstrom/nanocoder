@@ -13,30 +13,31 @@ import type {UserPreferences} from '@/types/index';
 
 console.log('\npreferences.spec.ts');
 
-// Use environment variable to isolate config directory for tests
-const testConfigDir = join(tmpdir(), `nanocoder-test-config-${Date.now()}`);
+// Use environment variable to isolate data directory for tests
+// Preferences are stored in the data directory, not config directory
+const testDataDir = join(tmpdir(), `nanocoder-test-data-${Date.now()}`);
 
 test.before(() => {
-	// Set config directory for all tests
-	process.env.NANOCODER_CONFIG_DIR = testConfigDir;
-	mkdirSync(testConfigDir, {recursive: true});
-	// Reset the preferences cache to pick up the new config directory
+	// Set data directory for all tests (preferences.ts uses NANOCODER_DATA_DIR)
+	process.env.NANOCODER_DATA_DIR = testDataDir;
+	mkdirSync(testDataDir, {recursive: true});
+	// Reset the preferences cache to pick up the new data directory
 	resetPreferencesCache();
 });
 
 test.after.always(() => {
-	// Clean up test config directory
-	if (existsSync(testConfigDir)) {
-		rmSync(testConfigDir, {recursive: true, force: true});
+	// Clean up test data directory
+	if (existsSync(testDataDir)) {
+		rmSync(testDataDir, {recursive: true, force: true});
 	}
 	// Clean up environment
-	delete process.env.NANOCODER_CONFIG_DIR;
+	delete process.env.NANOCODER_DATA_DIR;
 	// Reset the cache to restore normal behavior
 	resetPreferencesCache();
 });
 
-// Helper to get the preferences file path
-const getTestPreferencesPath = () => join(testConfigDir, 'nanocoder-preferences.json');
+// Helper to get the preferences file path (uses preferences.json, not nanocoder-preferences.json)
+const getTestPreferencesPath = () => join(testDataDir, 'preferences.json');
 
 // ============================================================================
 // loadPreferences Tests
