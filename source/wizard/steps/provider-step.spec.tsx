@@ -88,7 +88,7 @@ test('ProviderStep shows provider count when providers exist', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /2 providers already added/);
 });
 
 test('ProviderStep renders without crashing when onBack is provided', t => {
@@ -214,7 +214,7 @@ test('ProviderStep shows single provider count', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /1 provider already added/);
 });
 
 test('ProviderStep shows multiple providers count', t => {
@@ -239,7 +239,7 @@ test('ProviderStep shows multiple providers count', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /2 providers already added/);
 });
 
 test('ProviderStep handles empty existingProviders array', t => {
@@ -250,7 +250,7 @@ test('ProviderStep handles empty existingProviders array', t => {
 	const output = lastFrame();
 	t.truthy(output);
 	// Should not show provider count when none exist
-	t.notRegex(output!, /provider\(s\) already added/);
+	t.notRegex(output!, /providers? already added/);
 });
 
 // ============================================================================
@@ -312,7 +312,7 @@ test('ProviderStep shows correct text color for provider count', t => {
 
 	// Component should render the provider count
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /1 provider already added/);
 });
 
 test('ProviderStep renders multiple provider names when added', t => {
@@ -338,5 +338,5 @@ test('ProviderStep renders multiple provider names when added', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /2 providers already added/);
 });

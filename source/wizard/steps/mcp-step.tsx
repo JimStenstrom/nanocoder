@@ -6,6 +6,16 @@ import {Tab, Tabs} from 'ink-tab';
 import TextInput from 'ink-text-input';
 import {useEffect, useState} from 'react';
 import {
+	EditDeleteMenu,
+	FIELD_INPUT_HINTS,
+	ItemSummary,
+	MULTILINE_INPUT_HINTS,
+	NavigationHints,
+	SELECTION_HINTS,
+	TAB_NAVIGATION_HINTS,
+	WizardHeader,
+} from '../components';
+import {
 	MCP_TEMPLATES,
 	type McpServerConfig,
 	type McpTemplate,
@@ -409,18 +419,14 @@ export function McpStep({
 	if (mode === 'initial-menu') {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Configure MCP Servers
-					</Text>
-				</Box>
+				<WizardHeader title="Configure MCP Servers" />
 				{serverCount > 0 && (
 					<Box flexDirection="column" marginBottom={1}>
 						<Text color={colors.success}>
 							{serverCount} MCP server(s) configured:
 						</Text>
-						{Object.values(servers).map((server, index) => (
-							<Text key={index} color={colors.secondary}>
+						{Object.entries(servers).map(([key, server]) => (
+							<Text key={key} color={colors.secondary}>
 								• {server.name} ({server.transport})
 							</Text>
 						))}
@@ -439,21 +445,8 @@ export function McpStep({
 
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Add MCP Servers:
-					</Text>
-				</Box>
-				{serverCount > 0 && (
-					<Box marginBottom={1}>
-						<Text color={colors.success}>
-							Added:{' '}
-							{Object.values(servers)
-								.map(s => s.name)
-								.join(', ')}
-						</Text>
-					</Box>
-				)}
+				<WizardHeader title="Add MCP Servers:" />
+				<ItemSummary items={Object.values(servers).map(s => s.name)} />
 				<Tabs
 					onChange={name => setActiveTab(name as 'local' | 'remote')}
 					defaultValue={activeTab}
@@ -476,9 +469,7 @@ export function McpStep({
 				</Box>
 				<SelectInput items={templateOptions} onSelect={handleTemplateSelect} />
 				<Box marginTop={1}>
-					<Text color={colors.secondary}>
-						Arrow keys: Navigate | Tab: Switch tabs | Shift+Tab: Go back
-					</Text>
+					<NavigationHints hints={TAB_NAVIGATION_HINTS} />
 				</Box>
 			</Box>
 		);
@@ -487,17 +478,13 @@ export function McpStep({
 	if (mode === 'edit-selection') {
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						Select an MCP server to edit:
-					</Text>
-				</Box>
+				<WizardHeader title="Select an MCP server to edit:" />
 				<SelectInput
 					items={editOptions}
 					onSelect={(item: TemplateOption) => handleEditSelect(item)}
 				/>
 				<Box marginTop={1}>
-					<Text color={colors.secondary}>Shift+Tab: Go back</Text>
+					<NavigationHints hints={SELECTION_HINTS} />
 				</Box>
 			</Box>
 		);
@@ -506,26 +493,13 @@ export function McpStep({
 	if (mode === 'edit-or-delete') {
 		const server =
 			editingServerName !== null ? servers[editingServerName] : null;
-		const editOrDeleteOptions = [
-			{label: 'Edit this server', value: 'edit'},
-			{label: 'Delete this server', value: 'delete'},
-		];
-
 		return (
-			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{server?.name} - What would you like to do?
-					</Text>
-				</Box>
-				<SelectInput
-					items={editOrDeleteOptions}
-					onSelect={(item: {value: string}) => handleEditOrDeleteChoice(item)}
-				/>
-				<Box marginTop={1}>
-					<Text color={colors.secondary}>Shift+Tab: Go back</Text>
-				</Box>
-			</Box>
+			<EditDeleteMenu
+				itemName={server?.name || 'Server'}
+				itemType="server"
+				onEdit={() => handleEditOrDeleteChoice({value: 'edit'})}
+				onDelete={() => handleEditOrDeleteChoice({value: 'delete'})}
+			/>
 		);
 	}
 
@@ -537,15 +511,13 @@ export function McpStep({
 
 		return (
 			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color={colors.primary}>
-						{selectedTemplate.name} Configuration
-					</Text>
-					<Text dimColor>
-						{' '}
-						(Field {currentFieldIndex + 1}/{selectedTemplate.fields.length})
-					</Text>
-				</Box>
+				<WizardHeader
+					title={`${selectedTemplate.name} Configuration`}
+					fieldProgress={{
+						current: currentFieldIndex + 1,
+						total: selectedTemplate.fields.length,
+					}}
+				/>
 
 				<Box>
 					<Text>
@@ -554,7 +526,7 @@ export function McpStep({
 						{currentField.default && (
 							<Text dimColor> [{currentField.default}]</Text>
 						)}
-						: {currentField.sensitive && '****'}
+						{currentField.sensitive && ': ****'}
 					</Text>
 				</Box>
 
@@ -573,20 +545,6 @@ export function McpStep({
 							</Text>
 						</Box>
 					</Box>
-				) : currentField.sensitive ? (
-					<Box
-						marginBottom={1}
-						borderStyle="round"
-						borderColor={colors.secondary}
-					>
-						<TextInput
-							key={inputKey}
-							value={currentValue}
-							onChange={setCurrentValue}
-							onSubmit={handleFieldSubmit}
-							mask="*"
-						/>
-					</Box>
 				) : (
 					<Box
 						marginBottom={1}
@@ -598,6 +556,7 @@ export function McpStep({
 							value={currentValue}
 							onChange={setCurrentValue}
 							onSubmit={handleFieldSubmit}
+							mask={currentField.sensitive ? '*' : undefined}
 						/>
 					</Box>
 				)}
@@ -608,22 +567,9 @@ export function McpStep({
 					</Box>
 				)}
 
-				{isNarrow ? (
-					<Box flexDirection="column">
-						<Text color={colors.secondary}>
-							{isMultiline ? 'Esc: submit' : 'Enter: continue'}
-						</Text>
-						<Text color={colors.secondary}>Shift+Tab: go back</Text>
-					</Box>
-				) : (
-					<Box>
-						<Text color={colors.secondary}>
-							{isMultiline
-								? 'Press Esc to submit | Shift+Tab to go back'
-								: 'Press Enter to continue | Shift+Tab to go back'}
-						</Text>
-					</Box>
-				)}
+				<NavigationHints
+					hints={isMultiline ? MULTILINE_INPUT_HINTS : FIELD_INPUT_HINTS}
+				/>
 			</Box>
 		);
 	}
