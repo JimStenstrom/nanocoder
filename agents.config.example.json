@@ -54,6 +54,24 @@
 					"GITHUB_TOKEN": "your-github-token"
 				}
 			}
-		]
+		],
+		"workflow": {
+			"planningModel": {
+				"provider": "OpenRouter",
+				"model": "anthropic/claude-sonnet-4"
+			},
+			"codingModel": {
+				"provider": "Local Ollama",
+				"model": "qwen2.5-coder"
+			},
+			"reviewModel": {
+				"provider": "OpenRouter",
+				"model": "anthropic/claude-sonnet-4"
+			},
+			"autoAdvance": false,
+			"maxRevisions": 3,
+			"reviewPerTask": false,
+			"checkpointPerTask": true
+		}
 	}
 }

@@ -15,3 +15,4 @@ export * from '@/commands/status';
 export * from '@/commands/theme';
 export * from '@/commands/update';
 export * from '@/commands/usage';
+export * from '@/commands/workflow';

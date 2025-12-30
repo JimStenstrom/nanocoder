@@ -27,7 +27,7 @@ interface ProcessAssistantResponseParams {
 	addToChatQueue: (component: React.ReactNode) => void;
 	getNextComponentKey: () => number;
 	currentModel: string;
-	developmentMode: 'normal' | 'auto-accept' | 'plan';
+	developmentMode: 'normal' | 'auto-accept' | 'plan' | 'workflow';
 	nonInteractiveMode: boolean;
 	conversationStateManager: React.MutableRefObject<ConversationStateManager>;
 	onStartToolConfirmationFlow: (

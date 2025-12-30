@@ -124,11 +124,16 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 	// Toggle development mode handler
 	const handleToggleDevelopmentMode = React.useCallback(() => {
 		props.setDevelopmentMode(currentMode => {
-			const modes: Array<'normal' | 'auto-accept' | 'plan'> = [
-				'normal',
-				'auto-accept',
-				'plan',
-			];
+			// Note: 'workflow' mode is activated via /workflow command, not toggle
+			const modes: DevelopmentMode[] = ['normal', 'auto-accept', 'plan'];
+
+			// If in workflow mode, toggle exits to normal
+			if (currentMode === 'workflow') {
+				logger.info('Exiting workflow mode to normal mode');
+				setCurrentModeContext('normal');
+				return 'normal';
+			}
+
 			const currentIndex = modes.indexOf(currentMode);
 			const nextIndex = (currentIndex + 1) % modes.length;
 			const nextMode = modes[nextIndex];

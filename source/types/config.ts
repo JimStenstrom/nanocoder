@@ -1,4 +1,8 @@
 import type {ThemePreset} from '@/types/ui';
+import type {WorkflowConfig} from '@/types/workflow';
+
+// Re-export WorkflowConfig for convenience
+export type {WorkflowConfig} from '@/types/workflow';
 
 // AI provider configurations (OpenAI-compatible)
 export interface AIProviderConfig {
@@ -89,6 +93,9 @@ export interface AppConfig {
 		languages: string[]; // File extensions this server handles
 		env?: Record<string, string>;
 	}[];
+
+	// Workflow configuration for Claude Planning & Review workflow
+	workflow?: WorkflowConfig;
 }
 
 export interface UserPreferences {

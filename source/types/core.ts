@@ -156,12 +156,13 @@ export interface LLMClient {
 	clearContext(): Promise<void>;
 }
 
-export type DevelopmentMode = 'normal' | 'auto-accept' | 'plan';
+export type DevelopmentMode = 'normal' | 'auto-accept' | 'plan' | 'workflow';
 
 export const DEVELOPMENT_MODE_LABELS: Record<DevelopmentMode, string> = {
 	normal: '▶ normal mode on',
 	'auto-accept': '⏵⏵ auto-accept mode on',
 	plan: '⏸ plan mode on',
+	workflow: '⟳ workflow mode on',
 };
 
 // Connection status types for MCP and LSP servers
