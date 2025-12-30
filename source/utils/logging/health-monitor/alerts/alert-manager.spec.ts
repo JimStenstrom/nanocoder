@@ -91,3 +91,37 @@ test('sendAlert sends when cooldown expired', async t => {
 		await sendAlert(result, config, lastAlert, 'test-correlation-id');
 	});
 });
+
+test('sendAlert handles webhook channel when no URL configured', async t => {
+	const config = createMockConfig();
+	config.alerts.channels = ['webhook'];
+	// No webhookUrl configured
+	const result = createMockResult();
+
+	await t.notThrowsAsync(async () => {
+		await sendAlert(result, config, undefined, 'test-correlation-id');
+	});
+});
+
+test('sendAlert handles webhook channel with invalid URL gracefully', async t => {
+	const config = createMockConfig();
+	config.alerts.channels = ['webhook'];
+	config.alerts.webhookUrl = 'http://localhost:99999/nonexistent'; // Invalid/unreachable URL
+	const result = createMockResult();
+
+	// Should not throw even when webhook fails
+	await t.notThrowsAsync(async () => {
+		await sendAlert(result, config, undefined, 'test-correlation-id');
+	});
+});
+
+test('sendAlert supports multiple channels including webhook', async t => {
+	const config = createMockConfig();
+	config.alerts.channels = ['console', 'file', 'webhook'];
+	// No webhookUrl - webhook should be skipped gracefully
+	const result = createMockResult();
+
+	await t.notThrowsAsync(async () => {
+		await sendAlert(result, config, undefined, 'test-correlation-id');
+	});
+});
