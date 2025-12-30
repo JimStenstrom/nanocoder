@@ -111,12 +111,35 @@ export async function end(): Promise<void> {
 	await loggerProvider.end();
 }
 
+// Timeout for shutdown operations (5 seconds)
+const SHUTDOWN_TIMEOUT_MS = 5000;
+
+/**
+ * Wraps an async operation with a timeout to prevent hanging during shutdown
+ */
+async function withShutdownTimeout<T>(
+	operation: () => Promise<T>,
+	timeoutMs = SHUTDOWN_TIMEOUT_MS,
+): Promise<T | void> {
+	return Promise.race([
+		operation(),
+		new Promise<void>(resolve => {
+			setTimeout(() => {
+				log.warn('[LOGGER] Shutdown operation timed out');
+				resolve();
+			}, timeoutMs);
+		}),
+	]);
+}
+
 // Setup graceful shutdown handlers
 process.on('SIGTERM', () => {
 	void (async () => {
 		log.info('\n[LOGGER] Received SIGTERM, flushing logs...');
-		await flush();
-		await end();
+		await withShutdownTimeout(async () => {
+			await flush();
+			await end();
+		});
 		log.info('[LOGGER] Graceful shutdown completed');
 	})();
 });
@@ -124,8 +147,10 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
 	void (async () => {
 		log.info('\n[LOGGER] Received SIGINT, flushing logs...');
-		await flush();
-		await end();
+		await withShutdownTimeout(async () => {
+			await flush();
+			await end();
+		});
 		log.info('[LOGGER] Graceful shutdown completed');
 	})();
 });
@@ -135,7 +160,7 @@ process.on('uncaughtException', err => {
 	void (async () => {
 		const logger = getLogger();
 		logger.fatal({err}, 'Uncaught exception');
-		await flush();
+		await withShutdownTimeout(flush);
 		process.exit(1);
 	})();
 });
@@ -144,7 +169,7 @@ process.on('unhandledRejection', (reason, promise) => {
 	void (async () => {
 		const logger = getLogger();
 		logger.fatal({reason, promise}, 'Unhandled promise rejection');
-		await flush();
+		await withShutdownTimeout(flush);
 		process.exit(1);
 	})();
 });

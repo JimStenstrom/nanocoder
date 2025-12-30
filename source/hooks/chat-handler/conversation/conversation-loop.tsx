@@ -263,11 +263,6 @@ export const processAssistantResponse = async (
 
 	// Handle tool calls if present - this continues the loop
 	if (validToolCalls && validToolCalls.length > 0) {
-		// Note: Plan mode tool blocking was removed - the referenced tools
-		// (create_file, delete_lines, insert_lines, replace_lines) no longer exist.
-		// Plan mode restrictions are handled via needsApproval in tool definitions.
-		// TODO: Implement registry-based blocking for plan mode (track as separate issue).
-
 		// Separate tools that need confirmation vs those that don't
 		// Check tool's needsApproval property to determine if confirmation is needed
 		const toolsNeedingConfirmation: ToolCall[] = [];
