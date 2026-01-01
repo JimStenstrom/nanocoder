@@ -260,3 +260,35 @@ test('provider handles empty initializeLogger calls', t => {
 		t.truthy(logger);
 	});
 });
+
+test('Bun runtime detection - uses fallback logger when Bun detected', t => {
+	const provider = LoggerProvider.getInstance();
+
+	// Simulate Bun runtime by setting globalThis.Bun
+	const originalBun = (globalThis as Record<string, unknown>).Bun;
+	(globalThis as Record<string, unknown>).Bun = {version: '1.0.0'};
+
+	try {
+		provider.reset();
+		const logger = provider.initializeLogger();
+
+		// Logger should still work (using fallback)
+		t.truthy(logger, 'Should create logger even with Bun runtime');
+		t.truthy(typeof logger.info === 'function', 'Should have info method');
+		t.truthy(typeof logger.error === 'function', 'Should have error method');
+
+		// Should be able to call logging methods without crashing
+		t.notThrows(() => {
+			logger.info('Test message');
+			logger.error('Error message');
+		}, 'Should be able to log without Pino transport crash');
+	} finally {
+		// Restore original state
+		if (originalBun === undefined) {
+			delete (globalThis as Record<string, unknown>).Bun;
+		} else {
+			(globalThis as Record<string, unknown>).Bun = originalBun;
+		}
+		provider.reset();
+	}
+});

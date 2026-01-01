@@ -10,7 +10,10 @@ export class LoggerProvider {
 	private static instance: LoggerProvider | null = null;
 	private _logger: Logger | null = null;
 	private _config: LoggerConfig | null = null;
-	private _dependenciesLoaded = false;
+	// Separate flags to track fallback vs real dependencies (fixes issue where
+	// _dependenciesLoaded was set before async loadRealDependencies completed)
+	private _fallbackInitialized = false;
+	private _realDependenciesLoaded = false;
 
 	// Lazy-loaded dependencies
 	private _createPinoLogger:
@@ -22,6 +25,14 @@ export class LoggerProvider {
 
 	private constructor() {
 		// Private constructor for singleton pattern
+	}
+
+	/**
+	 * Detect if running under Bun runtime
+	 * Bun's worker threads are incompatible with Pino's transport API
+	 */
+	private static isBunRuntime(): boolean {
+		return typeof (globalThis as Record<string, unknown>).Bun !== 'undefined';
 	}
 
 	/**
@@ -38,7 +49,7 @@ export class LoggerProvider {
 	 * Initialize lazy-loaded dependencies to avoid circular imports
 	 */
 	private ensureDependenciesLoaded() {
-		if (this._dependenciesLoaded) {
+		if (this._fallbackInitialized) {
 			return;
 		}
 
@@ -53,7 +64,24 @@ export class LoggerProvider {
 			serialize: false,
 			...config,
 		});
-		this._dependenciesLoaded = true;
+		this._fallbackInitialized = true;
+
+		// Skip loading real Pino dependencies if running under Bun
+		// Bun's worker threads are incompatible with Pino's transport API (pino/file)
+		// which uses thread-stream and real-require packages
+		if (LoggerProvider.isBunRuntime()) {
+			if (process.env.NODE_ENV === 'development') {
+				this.createFallbackLogger().info(
+					'Bun runtime detected - using fallback logger (Pino transport incompatible)',
+					{
+						source: 'logger-provider',
+						runtime: 'bun',
+						status: 'fallback-only',
+					},
+				);
+			}
+			return;
+		}
 
 		// Asynchronously load the real dependencies and replace the fallback
 		this.loadRealDependencies().catch(error => {
@@ -86,7 +114,7 @@ export class LoggerProvider {
 	 */
 	private async loadRealDependencies() {
 		// Skip if already loaded to prevent duplicate loading
-		if (this._dependenciesLoaded) {
+		if (this._realDependenciesLoaded) {
 			// Only log in development mode to avoid noise for end users
 			if (process.env.NODE_ENV === 'development') {
 				this.createFallbackLogger().debug('Real dependencies already loaded', {
@@ -122,7 +150,7 @@ export class LoggerProvider {
 
 			this._createPinoLogger = pinoLogger.createPinoLogger;
 			this._createConfig = configModule.createConfig;
-			this._dependenciesLoaded = true;
+			this._realDependenciesLoaded = true;
 
 			// If we already have a logger with fallback config, reinitialize it with real config
 			if (this._logger && this._config) {
@@ -332,17 +360,27 @@ export class LoggerProvider {
 	public reset(): void {
 		this._logger = null;
 		this._config = null;
-		this._dependenciesLoaded = false;
+		this._fallbackInitialized = false;
+		this._realDependenciesLoaded = false;
 		this._createPinoLogger = null;
 		this._createConfig = null;
 	}
 
 	/**
 	 * Flush any pending logs
+	 * Includes defensive error handling for shutdown edge cases
 	 */
 	public async flush(): Promise<void> {
 		if (this._logger) {
-			await this._logger.flush();
+			try {
+				await this._logger.flush();
+			} catch (error) {
+				// Defensive handling for edge cases during shutdown
+				// The logger stream may already be closed
+				if (process.env.NODE_ENV === 'development') {
+					console.warn('[LOGGER_PROVIDER] Error during flush:', error);
+				}
+			}
 		}
 	}
 
