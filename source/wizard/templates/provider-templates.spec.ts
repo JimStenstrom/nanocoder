@@ -2,6 +2,7 @@ import test from 'ava';
 import {
 	PROVIDER_TEMPLATES,
 	type FieldValidationResult,
+	normalizeUrl,
 } from './provider-templates.js';
 
 // Helper to get the URL validator from ollama template
@@ -229,15 +230,13 @@ test('urlValidator: returns warning for public HTTP URL', t => {
 	}
 });
 
-test('urlValidator: returns error for invalid protocol', t => {
+test('urlValidator: accepts non-http protocols (will fail at connection time)', t => {
+	// We don't block non-http/https protocols since they're unrealistic for LLM APIs
+	// Users will get "connection refused" if they try something like ftp://
 	const validator = getUrlValidator();
 	t.truthy(validator);
 	const result = validator!('ftp://example.com/v1') as FieldValidationResult;
-	t.false(result.valid);
-	if (!result.valid) {
-		t.is(result.severity, 'error');
-		t.true(result.message.includes('http or https'));
-	}
+	t.true(result.valid); // Passes validation, will fail at runtime
 });
 
 test('urlValidator: returns error for invalid URL format', t => {
@@ -295,4 +294,61 @@ test('timeoutValidator: returns error for non-numeric value', t => {
 	if (!result.valid) {
 		t.is(result.severity, 'error');
 	}
+});
+
+// URL Normalization Tests
+test('normalizeUrl: returns unchanged valid http URL', t => {
+	t.is(normalizeUrl('http://localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: returns unchanged valid https URL', t => {
+	t.is(normalizeUrl('https://api.example.com/v1'), 'https://api.example.com/v1');
+});
+
+test('normalizeUrl: fixes htttp:// typo', t => {
+	t.is(normalizeUrl('htttp://localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: fixes htp:// typo', t => {
+	t.is(normalizeUrl('htp://localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: fixes hhtp:// typo', t => {
+	t.is(normalizeUrl('hhtp://localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: fixes htps:// typo', t => {
+	t.is(normalizeUrl('htps://api.example.com/v1'), 'https://api.example.com/v1');
+});
+
+test('normalizeUrl: fixes htttps:// typo', t => {
+	t.is(normalizeUrl('htttps://api.example.com/v1'), 'https://api.example.com/v1');
+});
+
+test('normalizeUrl: fixes httpss:// typo', t => {
+	t.is(normalizeUrl('httpss://api.example.com/v1'), 'https://api.example.com/v1');
+});
+
+test('normalizeUrl: fixes missing colon http//', t => {
+	t.is(normalizeUrl('http//localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: fixes missing colon https//', t => {
+	t.is(normalizeUrl('https//api.example.com/v1'), 'https://api.example.com/v1');
+});
+
+test('normalizeUrl: trims whitespace', t => {
+	t.is(normalizeUrl('  http://localhost:11434/v1  '), 'http://localhost:11434/v1');
+});
+
+test('normalizeUrl: case insensitive protocol fix', t => {
+	t.is(normalizeUrl('HTTTP://localhost:11434/v1'), 'http://localhost:11434/v1');
+});
+
+test('urlValidator: validates typo-corrected URL as valid', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	// htttp:// typo should be auto-corrected and validate successfully
+	const result = validator!('htttp://localhost:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
 });

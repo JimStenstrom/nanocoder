@@ -26,19 +26,48 @@ export interface ProviderTemplate {
 	modelsEndpoint?: ModelsEndpointType; // Hint for fetching models from local providers
 }
 
+/**
+ * Normalize URL by fixing common typos
+ * Exported for use in field handlers to save corrected values
+ */
+export function normalizeUrl(value: string): string {
+	let url = value.trim();
+
+	// Fix common protocol typos
+	const protocolFixes: [RegExp, string][] = [
+		[/^htttp:\/\//i, 'http://'],
+		[/^htp:\/\//i, 'http://'],
+		[/^hhtp:\/\//i, 'http://'],
+		[/^htttps:\/\//i, 'https://'],
+		[/^htps:\/\//i, 'https://'],
+		[/^hhtps:\/\//i, 'https://'],
+		[/^httpss:\/\//i, 'https://'],
+		// Missing colon
+		[/^http\/\//i, 'http://'],
+		[/^https\/\//i, 'https://'],
+		// Missing slash
+		[/^http:\/([^/])/i, 'http://$1'],
+		[/^https:\/([^/])/i, 'https://$1'],
+	];
+
+	for (const [pattern, replacement] of protocolFixes) {
+		if (pattern.test(url)) {
+			url = url.replace(pattern, replacement);
+			break;
+		}
+	}
+
+	return url;
+}
+
 const urlValidator = (value: string): FieldValidationResult | undefined => {
 	if (!value) return undefined;
-	try {
-		const url = new URL(value);
 
-		// Check protocol
-		if (!['http:', 'https:'].includes(url.protocol)) {
-			return {
-				valid: false,
-				severity: 'error',
-				message: 'URL must use http or https protocol',
-			};
-		}
+	// Normalize URL first (fix common typos)
+	const normalizedValue = normalizeUrl(value);
+
+	try {
+		const url = new URL(normalizedValue);
 
 		// HTTP is fine for local/private networks - no warning needed
 		// Only warn for truly remote (public) servers

@@ -7,6 +7,7 @@ import {colors} from '@/config/index';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {ProviderConfig} from '../../types/config';
 import {
+	normalizeUrl,
 	PROVIDER_TEMPLATES,
 	type ProviderTemplate,
 } from '../templates/provider-templates';
@@ -288,10 +289,14 @@ export function ProviderStep({
 			}
 		}
 
-		// Save answer
+		// Save answer (normalize URL fields to fix typos)
+		const valueToSave =
+			currentField.name === 'baseUrl'
+				? normalizeUrl(currentValue.trim())
+				: currentValue.trim();
 		const newAnswers = {
 			...fieldAnswers,
-			[currentField.name]: currentValue.trim(),
+			[currentField.name]: valueToSave,
 		};
 		setFieldAnswers(newAnswers);
 		setError(null);
