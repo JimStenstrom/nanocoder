@@ -53,6 +53,7 @@ export function McpStep({
 	const [currentValue, setCurrentValue] = useState('');
 	const [multilineBuffer, setMultilineBuffer] = useState('');
 	const [error, setError] = useState<string | null>(null);
+	const [warning, setWarning] = useState<string | null>(null);
 	const [inputKey, setInputKey] = useState(0);
 	const [editingServerName, setEditingServerName] = useState<string | null>(
 		null,
@@ -153,6 +154,7 @@ export function McpStep({
 				setCurrentValue(template.fields[0]?.default || '');
 				setMultilineBuffer('');
 				setError(null);
+				setWarning(null);
 				setMode('field-input');
 			}
 		}
@@ -237,6 +239,7 @@ export function McpStep({
 					);
 					setMultilineBuffer('');
 					setError(null);
+					setWarning(null);
 					setMode('field-input');
 				}
 			}
@@ -261,10 +264,19 @@ export function McpStep({
 
 		// Validate with custom validator
 		if (currentField.validator && finalValue) {
-			const validationError = currentField.validator(finalValue);
-			if (validationError) {
-				setError(validationError);
-				return;
+			const validationResult = currentField.validator(finalValue);
+			if (validationResult && !validationResult.valid) {
+				if (validationResult.severity === 'error') {
+					// Errors block progression
+					setError(validationResult.message);
+					setWarning(null);
+					return;
+				} else {
+					// Warnings inform but allow continuation
+					setWarning(validationResult.message);
+				}
+			} else {
+				setWarning(null);
 			}
 		}
 
@@ -275,6 +287,8 @@ export function McpStep({
 		};
 		setFieldAnswers(newAnswers);
 		setError(null);
+		setWarning(null);
+		setWarning(null);
 
 		// Move to next field or complete
 		if (currentFieldIndex < selectedTemplate.fields.length - 1) {
@@ -337,6 +351,7 @@ export function McpStep({
 					setMultilineBuffer('');
 					setInputKey(prev => prev + 1); // Force remount to reset cursor position
 					setError(null);
+					setWarning(null);
 				} else {
 					// At first field, go back based on context
 					if (editingServerName !== null) {
@@ -352,6 +367,7 @@ export function McpStep({
 					setCurrentValue('');
 					setMultilineBuffer('');
 					setError(null);
+					setWarning(null);
 				}
 			} else if (mode === 'edit-or-delete') {
 				// In edit-or-delete, go back to edit selection
@@ -401,6 +417,7 @@ export function McpStep({
 					setCurrentValue('');
 					setMultilineBuffer('');
 					setError(null);
+					setWarning(null);
 				}
 			}
 		}
@@ -605,6 +622,12 @@ export function McpStep({
 				{error && (
 					<Box marginBottom={1}>
 						<Text color={colors.error}>{error}</Text>
+					</Box>
+				)}
+
+				{warning && !error && (
+					<Box marginBottom={1}>
+						<Text color={colors.warning}>⚠ {warning}</Text>
 					</Box>
 				)}
 

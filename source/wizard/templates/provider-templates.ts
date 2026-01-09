@@ -1,13 +1,21 @@
 import type {ProviderConfig} from '../../types/config';
 import type {ModelsEndpointType} from '../utils/fetch-local-models';
 
+/**
+ * Field validation result - aligned with ToolValidator pattern from types/core.ts
+ * Supports distinguishable error levels: errors block, warnings inform but allow continuation
+ */
+export type FieldValidationResult =
+	| {valid: true}
+	| {valid: false; severity: 'error' | 'warning'; message: string};
+
 export interface TemplateField {
 	name: string;
 	prompt: string;
 	default?: string;
 	required?: boolean;
 	sensitive?: boolean; // For API keys, passwords, etc.
-	validator?: (value: string) => string | undefined; // Return error message if invalid
+	validator?: (value: string) => FieldValidationResult | undefined;
 }
 
 export interface ProviderTemplate {
@@ -18,14 +26,18 @@ export interface ProviderTemplate {
 	modelsEndpoint?: ModelsEndpointType; // Hint for fetching models from local providers
 }
 
-const urlValidator = (value: string): string | undefined => {
+const urlValidator = (value: string): FieldValidationResult | undefined => {
 	if (!value) return undefined;
 	try {
 		const url = new URL(value);
 
 		// Check protocol
 		if (!['http:', 'https:'].includes(url.protocol)) {
-			return 'URL must use http or https protocol';
+			return {
+				valid: false,
+				severity: 'error',
+				message: 'URL must use http or https protocol',
+			};
 		}
 
 		// HTTP is fine for local/private networks - no warning needed
@@ -41,12 +53,17 @@ const urlValidator = (value: string): string | undefined => {
 			/^172\.(1[6-9]|2\d|3[01])\./.test(hostname); // Private class B (172.16-31.x.x)
 
 		if (url.protocol === 'http:' && !isLocal) {
-			return 'Warning: HTTP on public server - API keys will be sent unencrypted. Use HTTPS for security.';
+			return {
+				valid: false,
+				severity: 'warning',
+				message:
+					'HTTP on public server - API keys will be sent unencrypted. Use HTTPS for security.',
+			};
 		}
 
-		return undefined;
+		return {valid: true};
 	} catch {
-		return 'Invalid URL format';
+		return {valid: false, severity: 'error', message: 'Invalid URL format'};
 	}
 };
 
@@ -458,9 +475,13 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 					if (!value) return undefined;
 					const num = Number(value);
 					if (Number.isNaN(num) || num <= 0) {
-						return 'Timeout must be a positive number';
+						return {
+							valid: false,
+							severity: 'error',
+							message: 'Timeout must be a positive number',
+						};
 					}
-					return undefined;
+					return {valid: true};
 				},
 			},
 		],

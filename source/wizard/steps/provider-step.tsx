@@ -84,6 +84,7 @@ export function ProviderStep({
 	const [fieldAnswers, setFieldAnswers] = useState<Record<string, string>>({});
 	const [currentValue, setCurrentValue] = useState('');
 	const [error, setError] = useState<string | null>(null);
+	const [warning, setWarning] = useState<string | null>(null);
 	const [inputKey, setInputKey] = useState(0);
 	const [cameFromCustom, setCameFromCustom] = useState(false);
 	const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -197,6 +198,7 @@ export function ProviderStep({
 			setFieldAnswers({});
 			setCurrentValue(template.fields[0]?.default || '');
 			setError(null);
+			setWarning(null);
 			setMode('field-input');
 			setCameFromCustom(false);
 		}
@@ -248,6 +250,7 @@ export function ProviderStep({
 							'',
 					);
 					setError(null);
+					setWarning(null);
 					setMode('field-input');
 					setCameFromCustom(false);
 				}
@@ -269,10 +272,19 @@ export function ProviderStep({
 
 		// Validate with custom validator
 		if (currentField.validator && currentValue.trim()) {
-			const validationError = currentField.validator(currentValue);
-			if (validationError) {
-				setError(validationError);
-				return;
+			const validationResult = currentField.validator(currentValue);
+			if (validationResult && !validationResult.valid) {
+				if (validationResult.severity === 'error') {
+					// Errors block progression
+					setError(validationResult.message);
+					setWarning(null);
+					return;
+				} else {
+					// Warnings inform but allow continuation
+					setWarning(validationResult.message);
+				}
+			} else {
+				setWarning(null);
 			}
 		}
 
@@ -283,6 +295,7 @@ export function ProviderStep({
 		};
 		setFieldAnswers(newAnswers);
 		setError(null);
+		setWarning(null);
 
 		// Move to next field or complete
 		if (currentFieldIndex < selectedTemplate.fields.length - 1) {
@@ -528,6 +541,7 @@ export function ProviderStep({
 		};
 		setFieldAnswers(newAnswers);
 		setError(null);
+		setWarning(null);
 
 		// Find the model field index and continue to the next field or complete
 		if (!selectedTemplate) return;
@@ -586,6 +600,7 @@ export function ProviderStep({
 					);
 					setInputKey(prev => prev + 1); // Force remount to reset cursor position
 					setError(null);
+					setWarning(null);
 				} else {
 					// At first field, go back based on where we came from
 					if (editingIndex !== null) {
@@ -603,6 +618,7 @@ export function ProviderStep({
 					setFieldAnswers({});
 					setCurrentValue('');
 					setError(null);
+					setWarning(null);
 				}
 			} else if (mode === 'template-selection') {
 				// In template selection, go back to initial choice
@@ -629,6 +645,7 @@ export function ProviderStep({
 						fieldAnswers[field?.name || ''] || field?.default || '',
 					);
 					setError(null);
+					setWarning(null);
 					setMode('field-input');
 				}
 			} else if (mode === 'model-selection') {
@@ -637,6 +654,7 @@ export function ProviderStep({
 				setSelectedModelIds(new Set());
 				setFetchError(null);
 				setError(null);
+				setWarning(null);
 				setMode('model-source-choice');
 			} else if (mode === 'select-template-or-custom') {
 				// At root level, call parent's onBack
@@ -658,6 +676,7 @@ export function ProviderStep({
 				setFieldAnswers({});
 				setCurrentValue('');
 				setError(null);
+				setWarning(null);
 			}
 		}
 
@@ -667,6 +686,7 @@ export function ProviderStep({
 				setFetchedModels([]);
 				setSelectedModelIds(new Set());
 				setError(null);
+				setWarning(null);
 				setMode('model-source-choice');
 			}
 		}
@@ -814,6 +834,12 @@ export function ProviderStep({
 				{error && (
 					<Box marginBottom={1}>
 						<Text color={colors.error}>{error}</Text>
+					</Box>
+				)}
+
+				{warning && !error && (
+					<Box marginBottom={1}>
+						<Text color={colors.warning}>⚠ {warning}</Text>
 					</Box>
 				)}
 

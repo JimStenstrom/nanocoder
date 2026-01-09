@@ -1,5 +1,22 @@
 import test from 'ava';
-import {PROVIDER_TEMPLATES} from './provider-templates.js';
+import {
+	PROVIDER_TEMPLATES,
+	type FieldValidationResult,
+} from './provider-templates.js';
+
+// Helper to get the URL validator from ollama template
+function getUrlValidator() {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'ollama');
+	const baseUrlField = template?.fields.find(f => f.name === 'baseUrl');
+	return baseUrlField?.validator;
+}
+
+// Helper to get the timeout validator from custom template
+function getTimeoutValidator() {
+	const template = PROVIDER_TEMPLATES.find(t => t.id === 'custom');
+	const timeoutField = template?.fields.find(f => f.name === 'timeout');
+	return timeoutField?.validator;
+}
 
 test('ollama template: single model', t => {
 	const template = PROVIDER_TEMPLATES.find(t => t.id === 'ollama');
@@ -149,4 +166,133 @@ test('custom template: includes timeout', t => {
 	});
 
 	t.is(config.timeout, 60000);
+});
+
+// URL Validator Tests
+test('urlValidator: returns undefined for empty value', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('');
+	t.is(result, undefined);
+});
+
+test('urlValidator: returns valid for HTTPS URL', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('https://api.example.com/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns valid for localhost HTTP', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://localhost:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns valid for 127.0.0.1 HTTP', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://127.0.0.1:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns valid for private network 192.168.x.x HTTP', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://192.168.1.100:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns valid for private network 10.x.x.x HTTP', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://10.0.0.50:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns valid for private network 172.16.x.x HTTP', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://172.16.0.1:11434/v1') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('urlValidator: returns warning for public HTTP URL', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('http://api.example.com/v1') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'warning');
+		t.true(result.message.includes('HTTP on public server'));
+	}
+});
+
+test('urlValidator: returns error for invalid protocol', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('ftp://example.com/v1') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'error');
+		t.true(result.message.includes('http or https'));
+	}
+});
+
+test('urlValidator: returns error for invalid URL format', t => {
+	const validator = getUrlValidator();
+	t.truthy(validator);
+	const result = validator!('not-a-valid-url') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'error');
+		t.true(result.message.includes('Invalid URL'));
+	}
+});
+
+// Timeout Validator Tests
+test('timeoutValidator: returns undefined for empty value', t => {
+	const validator = getTimeoutValidator();
+	t.truthy(validator);
+	const result = validator!('');
+	t.is(result, undefined);
+});
+
+test('timeoutValidator: returns valid for positive number', t => {
+	const validator = getTimeoutValidator();
+	t.truthy(validator);
+	const result = validator!('30000') as FieldValidationResult;
+	t.true(result.valid);
+});
+
+test('timeoutValidator: returns error for zero', t => {
+	const validator = getTimeoutValidator();
+	t.truthy(validator);
+	const result = validator!('0') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'error');
+		t.true(result.message.includes('positive number'));
+	}
+});
+
+test('timeoutValidator: returns error for negative number', t => {
+	const validator = getTimeoutValidator();
+	t.truthy(validator);
+	const result = validator!('-1000') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'error');
+	}
+});
+
+test('timeoutValidator: returns error for non-numeric value', t => {
+	const validator = getTimeoutValidator();
+	t.truthy(validator);
+	const result = validator!('abc') as FieldValidationResult;
+	t.false(result.valid);
+	if (!result.valid) {
+		t.is(result.severity, 'error');
+	}
 });
