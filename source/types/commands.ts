@@ -14,6 +14,7 @@ export interface Command<T = React.ReactElement | void> {
 			client?: import('@/types/core').LLMClient | null;
 			tune?: import('@/types/config').TuneConfig;
 			developmentMode?: import('@/types/core').DevelopmentMode;
+			lastApiUsage?: import('@/types/core').ApiUsageSnapshot | null;
 		},
 	) => Promise<T>;
 }

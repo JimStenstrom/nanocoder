@@ -492,6 +492,7 @@ async function handleBuiltInCommand(
 		client: options.client,
 		tune: options.tune,
 		developmentMode: options.developmentMode,
+		lastApiUsage: options.lastApiUsage,
 	});
 
 	if (!result) {

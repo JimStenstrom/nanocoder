@@ -534,3 +534,98 @@ test.serial(
 		}
 	},
 );
+
+// ============================================================================
+// API-reported allocation (issue #381 follow-up)
+// ============================================================================
+
+function apiMeta(
+	lastApiUsage: {
+		inputTokens?: number;
+		outputTokens?: number;
+		totalTokens?: number;
+		atMessageCount: number;
+	} | null,
+) {
+	return {...createMockMetadata(), lastApiUsage};
+}
+
+test('usage allocates the API total across categories when the snapshot is fresh', async t => {
+	const messages = createMessages(); // 3 messages
+	// atMessageCount matches messages.length (3) → fresh; 1000 + 200 = 1200.
+	const metadata = apiMeta({
+		inputTokens: 1000,
+		outputTokens: 200,
+		atMessageCount: 3,
+	});
+
+	const result = (await usageCommand.handler(
+		[],
+		messages,
+		metadata,
+	)) as React.ReactElement;
+
+	const b = result.props.breakdown;
+	t.is(result.props.source, 'api');
+	t.is(b.total, 1200);
+	t.is(result.props.currentTokens, 1200);
+	// The categories add up to exactly the API total.
+	t.is(
+		b.system +
+			b.userMessages +
+			b.assistantMessages +
+			b.toolDefinitions +
+			b.toolResults,
+		1200,
+	);
+});
+
+test('usage ignores a stale API snapshot and matches the pure estimate', async t => {
+	const messages = createMessages(); // 3 messages
+
+	const estimateRun = (await usageCommand.handler(
+		[],
+		messages,
+		createMockMetadata(),
+	)) as React.ReactElement;
+
+	// atMessageCount (2) no longer matches messages.length (3) → stale; the huge
+	// reported numbers must be ignored.
+	const staleRun = (await usageCommand.handler(
+		[],
+		messages,
+		apiMeta({inputTokens: 999999, outputTokens: 999999, atMessageCount: 2}),
+	)) as React.ReactElement;
+
+	t.is(staleRun.props.source, 'estimate');
+	t.is(staleRun.props.breakdown.total, estimateRun.props.breakdown.total);
+});
+
+test('usage defaults to the estimate source when no API usage is provided', async t => {
+	const messages = createMessages();
+	const result = (await usageCommand.handler(
+		[],
+		messages,
+		createMockMetadata(),
+	)) as React.ReactElement;
+
+	t.is(result.props.source, 'estimate');
+});
+
+test('usage titles the panel by source', async t => {
+	const messages = createMessages();
+
+	const apiResult = await usageCommand.handler(
+		[],
+		messages,
+		apiMeta({inputTokens: 1000, outputTokens: 200, atMessageCount: 3}),
+	);
+	t.regex(renderWithTheme(apiResult).lastFrame()!, /API-reported/);
+
+	const estimateResult = await usageCommand.handler(
+		[],
+		messages,
+		createMockMetadata(),
+	);
+	t.regex(renderWithTheme(estimateResult).lastFrame()!, /estimated/);
+});

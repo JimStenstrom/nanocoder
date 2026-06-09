@@ -5,6 +5,11 @@ export interface ContextUsageResult {
 	source: ContextSource;
 }
 
+export interface ResolvedContextTokens {
+	tokens: number;
+	source: ContextSource;
+}
+
 function isFiniteNumber(value: number | undefined): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
@@ -35,7 +40,7 @@ function apiContextTokens(usage: ApiUsage): number | undefined {
 }
 
 /**
- * Decide the context-usage percentage and whether it is API-reported or
+ * Resolve the context-occupancy token count and whether it is API-reported or
  * estimated.
  *
  * API usage is preferred only while it is "fresh" — no new messages have been
@@ -45,14 +50,35 @@ function apiContextTokens(usage: ApiUsage): number | undefined {
  * conversation (e.g. right after the user types a new message, before the next
  * response refreshes the snapshot).
  */
+export function resolveContextTokens(params: {
+	estimatedTotalTokens: number;
+	apiSnapshot: ApiUsageSnapshot | null;
+	currentMessageCount: number;
+}): ResolvedContextTokens {
+	const {estimatedTotalTokens, apiSnapshot, currentMessageCount} = params;
+
+	const apiTotal =
+		apiSnapshot !== null && apiSnapshot.atMessageCount === currentMessageCount
+			? apiContextTokens(apiSnapshot)
+			: undefined;
+
+	return apiTotal !== undefined
+		? {tokens: apiTotal, source: 'api'}
+		: {tokens: estimatedTotalTokens, source: 'estimate'};
+}
+
+/**
+ * Decide the context-usage percentage and whether it is API-reported or
+ * estimated, by resolving the occupancy tokens (see {@link resolveContextTokens})
+ * against the context limit.
+ */
 export function resolveContextUsage(params: {
 	estimatedTotalTokens: number;
 	apiSnapshot: ApiUsageSnapshot | null;
 	currentMessageCount: number;
 	contextLimit: number;
 }): ContextUsageResult {
-	const {estimatedTotalTokens, apiSnapshot, currentMessageCount, contextLimit} =
-		params;
+	const {contextLimit, ...rest} = params;
 
 	// Guard the exported helper against a zero/invalid limit; callers normally
 	// pass a positive limit (the hook bails when it can't resolve one).
@@ -60,20 +86,6 @@ export function resolveContextUsage(params: {
 		return {percent: 0, source: 'estimate'};
 	}
 
-	const apiTotal =
-		apiSnapshot !== null && apiSnapshot.atMessageCount === currentMessageCount
-			? apiContextTokens(apiSnapshot)
-			: undefined;
-
-	if (apiTotal !== undefined) {
-		return {
-			percent: Math.round((apiTotal / contextLimit) * 100),
-			source: 'api',
-		};
-	}
-
-	return {
-		percent: Math.round((estimatedTotalTokens / contextLimit) * 100),
-		source: 'estimate',
-	};
+	const {tokens, source} = resolveContextTokens(rest);
+	return {percent: Math.round((tokens / contextLimit) * 100), source};
 }

@@ -14,11 +14,13 @@ import {createTokenizer} from '@/tokenization/index';
 import type {Command} from '@/types/commands';
 import type {TuneConfig} from '@/types/config';
 import {getTuneToolMode} from '@/types/config';
-import type {DevelopmentMode, Message} from '@/types/core';
+import type {ApiUsageSnapshot, DevelopmentMode, Message} from '@/types/core';
 import {
+	allocateApiTokens,
 	calculateTokenBreakdown,
 	calculateToolDefinitionsTokensFromDefs,
 } from '@/usage/calculator';
+import {resolveContextTokens} from '@/usage/context-source';
 import {buildSystemPrompt, getLastBuiltPrompt} from '@/utils/prompt-builder';
 
 export const usageCommand: Command = {
@@ -35,9 +37,10 @@ export const usageCommand: Command = {
 			client?: import('@/types/core').LLMClient | null;
 			tune?: TuneConfig;
 			developmentMode?: DevelopmentMode;
+			lastApiUsage?: ApiUsageSnapshot | null;
 		},
 	) => {
-		const {provider, model, getMessageTokens, client} = metadata;
+		const {provider, model, getMessageTokens, client, lastApiUsage} = metadata;
 		const tune = metadata.tune;
 		const developmentMode: DevelopmentMode =
 			metadata.developmentMode ?? 'normal';
@@ -173,13 +176,30 @@ export const usageCommand: Command = {
 				providerConfig: client?.getProviderConfig(),
 			}));
 
+		// Prefer the provider's API-reported token count when a fresh snapshot is
+		// available (same freshness gate as the inline indicator); the API gives a
+		// lump sum only, so distribute it across the categories using the estimate
+		// ratios. Otherwise fall back to the pure client-side estimate.
+		// `messages.length` (not the system-prefixed array) must match the count
+		// the snapshot was captured against.
+		const {tokens: resolvedTotal, source} = resolveContextTokens({
+			estimatedTotalTokens: breakdown.total,
+			apiSnapshot: lastApiUsage ?? null,
+			currentMessageCount: messages.length,
+		});
+		const displayBreakdown =
+			source === 'api'
+				? allocateApiTokens(breakdown, resolvedTotal)
+				: breakdown;
+
 		return React.createElement(UsageDisplay, {
 			key: generateKey('usage'),
 			provider,
 			model,
 			contextLimit,
-			currentTokens: breakdown.total,
-			breakdown,
+			currentTokens: displayBreakdown.total,
+			breakdown: displayBreakdown,
+			source,
 			messages,
 			tokenizerName,
 			getMessageTokens,

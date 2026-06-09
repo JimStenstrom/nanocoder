@@ -6,7 +6,7 @@ import {Box, Text} from 'ink';
 import {TitledBoxWithPreferences} from '@/components/ui/titled-box';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
-import type {Message} from '@/types/core.js';
+import type {ContextSource, Message} from '@/types/core.js';
 import type {TokenBreakdown} from '@/types/usage.js';
 import {formatTokenCount, getUsageStatusColor} from '@/usage/calculator.js';
 import {ProgressBar} from './progress-bar.js';
@@ -20,6 +20,11 @@ interface UsageDisplayProps {
 	messages: Message[];
 	tokenizerName: string;
 	getMessageTokens: (message: Message) => number;
+	/**
+	 * Whether the figures are the provider's API-reported counts or the
+	 * client-side estimate. Controls the title marker. Defaults to `estimate`.
+	 */
+	source?: ContextSource;
 }
 
 export function UsageDisplay({
@@ -31,6 +36,7 @@ export function UsageDisplay({
 	messages,
 	tokenizerName,
 	getMessageTokens,
+	source = 'estimate',
 }: UsageDisplayProps) {
 	const boxWidth = useTerminalWidth();
 	const {colors} = useTheme();
@@ -85,7 +91,11 @@ export function UsageDisplay({
 
 	return (
 		<TitledBoxWithPreferences
-			title="Context Usage"
+			title={
+				source === 'api'
+					? 'Context Usage (API-reported)'
+					: 'Context Usage (estimated)'
+			}
 			width={boxWidth}
 			borderColor={colors.info}
 			paddingX={2}
@@ -264,10 +274,12 @@ export function UsageDisplay({
 				</Text>
 			</Box>
 
-			{/* Recent Activity */}
+			{/* Recent Activity — always per-message client-side estimates (there
+			    is no API-reported per-message breakdown), so mark them explicitly
+			    when the rest of the panel shows API-reported figures. */}
 			<Box marginTop={1} marginBottom={1}>
 				<Text color={colors.primary} bold>
-					Recent Activity
+					{source === 'api' ? 'Recent Activity (estimated)' : 'Recent Activity'}
 				</Text>
 			</Box>
 			<Box>

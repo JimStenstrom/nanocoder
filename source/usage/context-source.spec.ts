@@ -1,6 +1,6 @@
 import test from 'ava';
 import type {ApiUsageSnapshot} from '@/types/core.js';
-import {resolveContextUsage} from './context-source.js';
+import {resolveContextTokens, resolveContextUsage} from './context-source.js';
 
 console.log('\ncontext-source.spec.ts');
 
@@ -113,4 +113,58 @@ test('returns 0% estimate when the context limit is not positive', t => {
 	});
 	t.is(result.source, 'estimate');
 	t.is(result.percent, 0);
+});
+
+// ============================================================================
+// resolveContextTokens Tests — the token-count resolver the /usage menu uses
+// ============================================================================
+
+test('resolveContextTokens: returns the API total when the snapshot is fresh', t => {
+	const result = resolveContextTokens({
+		estimatedTotalTokens: 9000,
+		apiSnapshot: fresh,
+		currentMessageCount: 4,
+	});
+	t.is(result.source, 'api');
+	t.is(result.tokens, 10000); // inputTokens + outputTokens
+});
+
+test('resolveContextTokens: falls back to the estimate when stale', t => {
+	const result = resolveContextTokens({
+		estimatedTotalTokens: 9000,
+		apiSnapshot: fresh,
+		currentMessageCount: 5,
+	});
+	t.is(result.source, 'estimate');
+	t.is(result.tokens, 9000);
+});
+
+test('resolveContextTokens: falls back to the estimate when no snapshot', t => {
+	const result = resolveContextTokens({
+		estimatedTotalTokens: 6000,
+		apiSnapshot: null,
+		currentMessageCount: 2,
+	});
+	t.is(result.source, 'estimate');
+	t.is(result.tokens, 6000);
+});
+
+test('resolveContextTokens: uses a reported totalTokens lump sum', t => {
+	const result = resolveContextTokens({
+		estimatedTotalTokens: 9999,
+		apiSnapshot: {totalTokens: 5000, atMessageCount: 3},
+		currentMessageCount: 3,
+	});
+	t.is(result.source, 'api');
+	t.is(result.tokens, 5000);
+});
+
+test('resolveContextTokens: estimates when only outputTokens is reported', t => {
+	const result = resolveContextTokens({
+		estimatedTotalTokens: 9000,
+		apiSnapshot: {outputTokens: 300, atMessageCount: 3},
+		currentMessageCount: 3,
+	});
+	t.is(result.source, 'estimate');
+	t.is(result.tokens, 9000);
 });

@@ -52,6 +52,7 @@ interface UseAppHandlersProps {
 	currentTheme: ThemePreset;
 	developmentMode: DevelopmentMode;
 	tune: TuneConfig | undefined;
+	lastApiUsage: import('@/types/core').ApiUsageSnapshot | null;
 	abortController: AbortController | null;
 	updateInfo: UpdateInfo | null;
 	mcpServersStatus: MCPConnectionStatus[] | undefined;
@@ -564,6 +565,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 					getMessageTokens: props.getMessageTokens,
 					tune: props.tune,
 					developmentMode: props.developmentMode,
+					lastApiUsage: props.lastApiUsage,
 				},
 				displayValue,
 			);
@@ -595,6 +597,7 @@ export function useAppHandlers(props: UseAppHandlersProps): AppHandlers {
 			props.getMessageTokens,
 			props.tune,
 			props.developmentMode,
+			props.lastApiUsage,
 			clearMessages,
 			enterCheckpointLoadMode,
 			handleShowStatus,

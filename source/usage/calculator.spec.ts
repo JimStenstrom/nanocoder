@@ -3,7 +3,9 @@ import type {Tokenizer} from '@/types/tokenization.js';
 import test from 'ava';
 import {TOKENS_PER_TOOL_ESTIMATE, TOKENS_PER_TOOL_FRAMING} from '@/constants';
 import {jsonSchema, tool} from '@/types/core.js';
+import type {TokenBreakdown} from '@/types/usage.js';
 import {
+	allocateApiTokens,
 	calculateTokenBreakdown,
 	calculateToolDefinitionsTokensFromDefs,
 	formatTokenCount,
@@ -434,4 +436,138 @@ test('formatTokenCount with calculateTokenBreakdown result', t => {
 
 	t.is(breakdown.total, 3000);
 	t.is(formatted, '3,000');
+});
+
+// ============================================================================
+// allocateApiTokens Tests
+// ============================================================================
+
+function makeBreakdown(parts: Partial<TokenBreakdown>): TokenBreakdown {
+	const leaves = {
+		system: 0,
+		userMessages: 0,
+		assistantMessages: 0,
+		toolDefinitions: 0,
+		toolResults: 0,
+		...parts,
+	};
+	return {
+		...leaves,
+		total:
+			leaves.system +
+			leaves.userMessages +
+			leaves.assistantMessages +
+			leaves.toolDefinitions +
+			leaves.toolResults,
+	};
+}
+
+function leafSum(b: TokenBreakdown): number {
+	return (
+		b.system +
+		b.userMessages +
+		b.assistantMessages +
+		b.toolDefinitions +
+		b.toolResults
+	);
+}
+
+test('allocateApiTokens: leaves and total sum exactly to apiTotal (rounding case)', t => {
+	// Five equal categories, apiTotal not divisible by 5 → forces remainder
+	// distribution. Each ideal is 1.4 → floor 1 (sum 5), deficit 2.
+	const estimate = makeBreakdown({
+		system: 1,
+		userMessages: 1,
+		assistantMessages: 1,
+		toolDefinitions: 1,
+		toolResults: 1,
+	});
+
+	const allocated = allocateApiTokens(estimate, 7);
+
+	t.is(allocated.total, 7);
+	t.is(leafSum(allocated), 7);
+	// Tie on remainders + equal estimate values → the +1s go by category order.
+	t.is(allocated.system, 2);
+	t.is(allocated.userMessages, 2);
+	t.is(allocated.assistantMessages, 1);
+});
+
+test('allocateApiTokens: preserves proportions of the estimate', t => {
+	const estimate = makeBreakdown({
+		system: 50,
+		userMessages: 30,
+		assistantMessages: 20,
+	});
+
+	const allocated = allocateApiTokens(estimate, 200);
+
+	t.is(allocated.system, 100);
+	t.is(allocated.userMessages, 60);
+	t.is(allocated.assistantMessages, 40);
+	t.is(allocated.total, 200);
+	t.is(leafSum(allocated), 200);
+	// Larger estimate category gets the larger allocation.
+	t.true(allocated.system > allocated.userMessages);
+	t.true(allocated.userMessages > allocated.assistantMessages);
+});
+
+test('allocateApiTokens: scales down when the API total is smaller', t => {
+	const estimate = makeBreakdown({system: 500, userMessages: 500});
+
+	const allocated = allocateApiTokens(estimate, 100);
+
+	t.is(allocated.system, 50);
+	t.is(allocated.userMessages, 50);
+	t.is(allocated.total, 100);
+	t.is(leafSum(allocated), 100);
+});
+
+test('allocateApiTokens: scales up when the API total is larger', t => {
+	const estimate = makeBreakdown({system: 1, userMessages: 1, assistantMessages: 1});
+
+	const allocated = allocateApiTokens(estimate, 10);
+
+	t.is(allocated.total, 10);
+	t.is(leafSum(allocated), 10);
+});
+
+test('allocateApiTokens: zero estimate signal surfaces only the total', t => {
+	const estimate = makeBreakdown({}); // all leaves 0, total 0
+
+	const allocated = allocateApiTokens(estimate, 500);
+
+	t.is(allocated.total, 500);
+	t.is(allocated.system, 0);
+	t.is(allocated.userMessages, 0);
+	t.is(allocated.assistantMessages, 0);
+	t.is(allocated.toolDefinitions, 0);
+	t.is(allocated.toolResults, 0);
+});
+
+test('allocateApiTokens: non-positive apiTotal yields an all-zero breakdown', t => {
+	const estimate = makeBreakdown({system: 10, userMessages: 5});
+
+	const zeroAllocated = allocateApiTokens(estimate, 0);
+	t.is(zeroAllocated.total, 0);
+	t.is(leafSum(zeroAllocated), 0);
+
+	const negativeAllocated = allocateApiTokens(estimate, -100);
+	t.is(negativeAllocated.total, 0);
+	t.is(leafSum(negativeAllocated), 0);
+});
+
+test('allocateApiTokens: is deterministic for identical inputs', t => {
+	const estimate = makeBreakdown({
+		system: 7,
+		userMessages: 11,
+		assistantMessages: 13,
+		toolResults: 17,
+	});
+
+	const first = allocateApiTokens(estimate, 1234);
+	const second = allocateApiTokens(estimate, 1234);
+
+	t.deepEqual(first, second);
+	t.is(leafSum(first), 1234);
 });

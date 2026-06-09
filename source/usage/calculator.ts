@@ -146,3 +146,80 @@ export function getUsageStatusColor(
 export function formatTokenCount(tokens: number): string {
 	return tokens.toLocaleString();
 }
+
+/**
+ * Distribute an API-reported lump-sum token total across the estimated
+ * category breakdown, preserving the estimate's per-category ratios.
+ *
+ * Providers report only a single context-occupancy number (no per-category
+ * split), so we apportion it over the five leaf categories using the
+ * client-side estimate as the ratio source. Uses the largest-remainder
+ * (Hamilton) method so the categories sum *exactly* to `apiTotal` instead of
+ * drifting by rounding error.
+ */
+export function allocateApiTokens(
+	estimate: TokenBreakdown,
+	apiTotal: number,
+): TokenBreakdown {
+	const zero: TokenBreakdown = {
+		system: 0,
+		userMessages: 0,
+		assistantMessages: 0,
+		toolDefinitions: 0,
+		toolResults: 0,
+		total: 0,
+	};
+
+	// Nothing to distribute.
+	if (!(apiTotal > 0)) {
+		return zero;
+	}
+
+	const keys = [
+		'system',
+		'userMessages',
+		'assistantMessages',
+		'toolDefinitions',
+		'toolResults',
+	] as const;
+
+	// Use the actual sum of leaf categories as the denominator (rather than the
+	// reported `total`) so the ideal allocations sum to exactly `apiTotal`
+	// regardless of any inconsistency in the incoming breakdown.
+	const leafSum = keys.reduce((sum, key) => sum + estimate[key], 0);
+	if (!(leafSum > 0)) {
+		// No estimate signal to distribute against — surface the total only.
+		return {...zero, total: apiTotal};
+	}
+
+	const ideals = keys.map(key => (estimate[key] * apiTotal) / leafSum);
+	const floors = ideals.map(value => Math.floor(value));
+
+	const allocated: TokenBreakdown = {...zero, total: apiTotal};
+	keys.forEach((key, index) => {
+		allocated[key] = floors[index];
+	});
+
+	// Hand the rounding deficit to the largest fractional remainders, breaking
+	// ties by larger estimate value then category order so the result is
+	// deterministic.
+	let deficit = apiTotal - floors.reduce((sum, value) => sum + value, 0);
+	const byRemainder = keys
+		.map((key, index) => ({
+			key,
+			index,
+			remainder: ideals[index] - floors[index],
+		}))
+		.sort(
+			(a, b) =>
+				b.remainder - a.remainder ||
+				estimate[b.key] - estimate[a.key] ||
+				a.index - b.index,
+		);
+	for (let i = 0; i < byRemainder.length && deficit > 0; i++) {
+		allocated[byRemainder[i].key] += 1;
+		deficit--;
+	}
+
+	return allocated;
+}
