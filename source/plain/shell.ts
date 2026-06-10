@@ -3,6 +3,7 @@ import {appendToolDefinitionsToPrompt} from '@/ai-sdk-client/tools/system-prompt
 import {getAppConfig} from '@/config/index';
 import {loadPreferences, savePreferences} from '@/config/preferences';
 import {resolveTune} from '@/config/tune';
+import {createStdinAsk, promptToolApproval} from '@/plain/approval-prompt';
 import {runPlainConversation} from '@/plain/conversation';
 import {initializePlain} from '@/plain/initialize';
 import {
@@ -24,6 +25,12 @@ export interface RunPlainShellOptions {
 	cliProvider?: string;
 	cliModel?: string;
 	trustDirectory: boolean;
+	/**
+	 * `--ask`: semi-interactive approvals. When a tool call needs approval,
+	 * prompt on the terminal (approve once / deny) instead of aborting the
+	 * run. Requires a TTY on stdin (enforced in cli.tsx).
+	 */
+	askApprovals?: boolean;
 }
 
 /**
@@ -40,8 +47,14 @@ export interface RunPlainShellOptions {
 export async function runPlainShell(
 	options: RunPlainShellOptions,
 ): Promise<void> {
-	const {prompt, developmentMode, cliProvider, cliModel, trustDirectory} =
-		options;
+	const {
+		prompt,
+		developmentMode,
+		cliProvider,
+		cliModel,
+		trustDirectory,
+		askApprovals,
+	} = options;
 
 	if (!ensureDirectoryTrust(trustDirectory)) {
 		await shutdown(1);
@@ -100,6 +113,9 @@ export async function runPlainShell(
 
 	const nonInteractiveAlwaysAllow = getAppConfig().alwaysAllow ?? [];
 
+	// `--ask`: wire the semi-interactive approval prompt.
+	const ask = askApprovals ? createStdinAsk() : undefined;
+
 	writeLine();
 	const outcome = await runPlainConversation({
 		client,
@@ -111,6 +127,9 @@ export async function runPlainShell(
 		abortSignal: abortController.signal,
 		tune,
 		model,
+		approvalPrompter: ask
+			? toolCall => promptToolApproval(toolCall, ask)
+			: undefined,
 	});
 	process.off('SIGINT', sigint);
 
@@ -121,7 +140,8 @@ export async function runPlainShell(
 		case 'tool-approval-required':
 			writeError(
 				`Tool approval required for: ${outcome.toolNames.join(', ')}. ` +
-					`Re-run with --mode auto-accept or --mode yolo, or add the tools to ` +
+					`Re-run with --ask to approve interactively, use --mode ` +
+					`auto-accept or --mode yolo, or add the tools to ` +
 					`agents.config.json "alwaysAllow".`,
 			);
 			await shutdown(2);

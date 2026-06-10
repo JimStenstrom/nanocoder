@@ -28,6 +28,8 @@ function parsePrompt(args: string[]): string | undefined {
 				continue;
 			} else if (arg === '--plain' || arg === '--no-plain') {
 				continue; // skip this flag
+			} else if (arg === '--ask') {
+				continue; // skip this flag
 			} else {
 				promptArgs.push(arg);
 			}
@@ -84,6 +86,13 @@ test('CLI parsing: handles empty args array', t => {
 	const prompt = parsePrompt(args);
 
 	t.is(prompt, undefined);
+});
+
+test('CLI parsing: filters out --ask flag after run command', t => {
+	const args = ['run', '--ask', 'create', 'a', 'file'];
+	const prompt = parsePrompt(args);
+
+	t.is(prompt, 'create a file');
 });
 
 // New tests for flag filtering
@@ -227,9 +236,10 @@ test('CLI parsing: --context-max with numeric value', t => {
 	t.is(args[contextMaxArgIndex + 1], '32000');
 });
 
-// --plain / --no-plain flag tests. The plain-mode resolution rule mirrors
-// the logic in cli.tsx: explicit --plain wins, --no-plain forces Ink, and
-// otherwise it auto-enables for `run` invocations on a non-TTY or in CI.
+// --plain / --no-plain / --ask flag tests. The plain-mode resolution rule
+// mirrors the logic in cli.tsx: explicit --plain wins, --no-plain forces Ink,
+// --ask implies plain, and otherwise it auto-enables for `run` invocations on
+// a non-TTY or in CI.
 function resolvePlainMode(opts: {
 	args: string[];
 	stdoutIsTTY: boolean;
@@ -240,6 +250,7 @@ function resolvePlainMode(opts: {
 	const vscodeMode = args.includes('--vscode');
 	const plainRequested = args.includes('--plain');
 	const noPlainRequested = args.includes('--no-plain');
+	const askRequested = args.includes('--ask');
 	const ciDetected =
 		env.CI === 'true' ||
 		Boolean(
@@ -254,7 +265,7 @@ function resolvePlainMode(opts: {
 		!noPlainRequested &&
 		!vscodeMode &&
 		(!stdoutIsTTY || ciDetected);
-	return {plainMode: plainRequested || plainAuto, vscodeMode};
+	return {plainMode: plainRequested || plainAuto || askRequested, vscodeMode};
 }
 
 test('plain mode: filters --plain and --no-plain from prompt args', t => {
@@ -305,6 +316,15 @@ test('plain mode: --no-plain wins over auto-detection', t => {
 		env: {CI: 'true'},
 	});
 	t.false(plainMode);
+});
+
+test('plain mode: --ask implies plain on a TTY without CI', t => {
+	const {plainMode} = resolvePlainMode({
+		args: ['run', '--ask', 'hi'],
+		stdoutIsTTY: true,
+		env: {},
+	});
+	t.true(plainMode);
 });
 
 test('plain mode: stays off for interactive sessions even on a non-TTY', t => {

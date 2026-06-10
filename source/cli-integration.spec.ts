@@ -92,8 +92,48 @@ test('CLI integration: version flag takes precedence over other arguments', t =>
 
 test('CLI integration: help flag takes precedence over other arguments', t => {
 	const output = runCliCommand(['--help', '--vscode', 'run', 'test']);
-	
+
 	// Should return help text, not start the app
 	t.true(output.includes('Usage:'));
 	t.true(output.includes('--version'));
+});
+
+// Helper for invocations that are expected to fail fast with exit code 1.
+function runCliExpectingError(args: string[]): {status: number; stderr: string} {
+	try {
+		execFileSync('node', [cliPath, ...args], {
+			encoding: 'utf8',
+			stdio: ['pipe', 'pipe', 'pipe'],
+		});
+		return {status: 0, stderr: ''};
+	} catch (error: any) {
+		return {status: error.status ?? -1, stderr: String(error.stderr ?? '')};
+	}
+}
+
+test('CLI integration: --ask without run exits with an error', t => {
+	const {status, stderr} = runCliExpectingError(['--ask']);
+
+	t.is(status, 1);
+	t.true(stderr.includes('--ask requires the `run` subcommand'));
+});
+
+test('CLI integration: --ask with --no-plain exits with an error', t => {
+	const {status, stderr} = runCliExpectingError([
+		'run',
+		'--ask',
+		'--no-plain',
+		'hello',
+	]);
+
+	t.is(status, 1);
+	t.true(stderr.includes('--ask and --no-plain'));
+});
+
+test('CLI integration: --ask without a TTY stdin exits with an error', t => {
+	// stdio 'pipe' means stdin is not a TTY, exactly like a CI environment.
+	const {status, stderr} = runCliExpectingError(['run', '--ask', 'hello']);
+
+	t.is(status, 1);
+	t.true(stderr.includes('stdin is not a TTY'));
 });

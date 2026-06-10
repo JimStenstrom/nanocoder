@@ -83,6 +83,9 @@ Options:
   --plain             Use a lightweight, Ink-free runtime for non-interactive runs.
                       Only valid with the "run" command. Auto-enables in CI / non-TTY.
   --no-plain          Force the Ink runtime even in CI / non-TTY environments.
+  --ask               Semi-interactive run: when a tool needs approval, prompt on the
+                      terminal to approve or deny it. Only valid with the "run" command;
+                      implies --plain and requires an interactive stdin.
   --acp               Run as an ACP (Agent Client Protocol) server for editor integration.
                       Communicates via JSON-RPC over stdin/stdout.
   run                 Run in non-interactive mode
@@ -94,6 +97,7 @@ Examples:
   nanocoder --mode plan
   nanocoder --trust-directory run "analyze src/app.ts"
   nanocoder --plain run "summarize README.md"
+  nanocoder run --ask "update README and commit"
   `);
 	process.exit(0);
 }
@@ -209,6 +213,8 @@ async function main(): Promise<void> {
 				continue; // skip this flag
 			} else if (arg === '--plain' || arg === '--no-plain') {
 				continue; // skip this flag
+			} else if (arg === '--ask') {
+				continue; // skip this flag
 			} else {
 				promptArgs.push(arg);
 			}
@@ -261,7 +267,36 @@ async function main(): Promise<void> {
 		!noPlainRequested &&
 		!vscodeMode &&
 		(!process.stdout.isTTY || ciDetected);
-	const plainMode = plainRequested || plainAuto;
+
+	// --ask: semi-interactive tool approvals for `run`. Implies the plain
+	// runtime (the prompt is a plain readline, not an Ink component) and needs
+	// a human on stdin — fail loudly rather than hang or silently degrade.
+	const askRequested = args.includes('--ask');
+	if (askRequested && !nonInteractiveMode) {
+		console.error(
+			'--ask requires the `run` subcommand. Try: nanocoder run --ask "..."',
+		);
+		process.exit(1);
+	}
+	if (askRequested && noPlainRequested) {
+		console.error(
+			'Cannot pass both --ask and --no-plain: --ask uses the plain runtime.',
+		);
+		process.exit(1);
+	}
+	if (askRequested && vscodeMode) {
+		console.error('Cannot combine --ask with --vscode.');
+		process.exit(1);
+	}
+	if (askRequested && !process.stdin.isTTY) {
+		console.error(
+			'--ask needs an interactive terminal to prompt for tool approvals, ' +
+				'but stdin is not a TTY. Drop --ask for fully non-interactive runs.',
+		);
+		process.exit(1);
+	}
+
+	const plainMode = plainRequested || plainAuto || askRequested;
 
 	// --acp: Agent Client Protocol server mode for editor integration
 	const acpMode = args.includes('--acp');
@@ -330,6 +365,7 @@ async function main(): Promise<void> {
 			cliProvider,
 			cliModel,
 			trustDirectory,
+			askApprovals: askRequested,
 		});
 	} else {
 		// Prevent Node's global performance entry buffer from growing without

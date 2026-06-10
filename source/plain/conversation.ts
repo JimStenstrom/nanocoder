@@ -1,5 +1,6 @@
 import {getAppConfig} from '@/config/index';
 import {processToolUse} from '@/message-handler';
+import type {ApprovalDecision} from '@/plain/approval-prompt';
 import {color, write, writeError, writeLine, writeStatus} from '@/plain/writer';
 import {parseToolCalls} from '@/tool-calling/index';
 import {resolveToolApproval} from '@/tools/approval-policy';
@@ -14,6 +15,7 @@ import type {
 	ToolResult,
 } from '@/types/core';
 import {capMessagesForModel} from '@/utils/message-capping';
+import {createCancellationResults} from '@/utils/tool-cancellation';
 
 export interface RunPlainConversationOptions {
 	client: LLMClient;
@@ -25,6 +27,14 @@ export interface RunPlainConversationOptions {
 	abortSignal: AbortSignal;
 	tune?: TuneConfig;
 	model?: string;
+	/**
+	 * Semi-interactive approvals (`run --ask`): asked once per tool call that
+	 * needs approval. Absent (the default) the loop keeps its fully
+	 * non-interactive behavior — any approval-needing call ends the run with a
+	 * `tool-approval-required` outcome. A rejected promise (EOF / Ctrl-C at
+	 * the prompt) falls back to that same outcome.
+	 */
+	approvalPrompter?: (toolCall: ToolCall) => Promise<ApprovalDecision>;
 }
 
 export type PlainConversationOutcome =
@@ -53,6 +63,7 @@ export async function runPlainConversation(
 		abortSignal,
 		tune,
 		model,
+		approvalPrompter,
 	} = options;
 
 	let messages = initialMessages;
@@ -180,8 +191,9 @@ export async function runPlainConversation(
 		}
 
 		const toolsNeedingApproval: string[] = [];
-		const toolsToExecute: ToolCall[] = [];
+		const decisions: Array<{toolCall: ToolCall; execute: boolean}> = [];
 		for (const toolCall of validToolCalls) {
+			const toolName = toolCall.function.name;
 			// Approval (including the yolo bypass) is resolved centrally.
 			const needsApproval = await evaluateNeedsApproval(
 				toolCall,
@@ -189,11 +201,28 @@ export async function runPlainConversation(
 				nonInteractiveAlwaysAllow,
 				developmentMode,
 			);
-			if (needsApproval) {
-				toolsNeedingApproval.push(toolCall.function.name);
-			} else {
-				toolsToExecute.push(toolCall);
+			if (!needsApproval) {
+				decisions.push({toolCall, execute: true});
+				continue;
 			}
+			if (!approvalPrompter) {
+				toolsNeedingApproval.push(toolName);
+				continue;
+			}
+			let decision: ApprovalDecision;
+			try {
+				decision = await approvalPrompter(toolCall);
+			} catch {
+				// Prompt failed (EOF / interrupt): fail safe, as if nobody were
+				// there to approve.
+				toolsNeedingApproval.push(toolName);
+				continue;
+			}
+			if (decision === 'deny') {
+				decisions.push({toolCall, execute: false});
+				continue;
+			}
+			decisions.push({toolCall, execute: true});
 		}
 
 		if (toolsNeedingApproval.length > 0) {
@@ -204,7 +233,12 @@ export async function runPlainConversation(
 		}
 
 		const toolResults: ToolResult[] = [];
-		for (const toolCall of toolsToExecute) {
+		for (const {toolCall, execute} of decisions) {
+			if (!execute) {
+				writeStatus(`tool denied: ${toolCall.function.name}`);
+				toolResults.push(...createCancellationResults([toolCall]));
+				continue;
+			}
 			writeStatus(`tool: ${toolCall.function.name}`);
 			const toolResult = await processToolUse(toolCall);
 			toolResults.push(toolResult);

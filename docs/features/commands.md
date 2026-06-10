@@ -94,4 +94,25 @@ nanocoder --mode plan run "analyze the auth module"
 nanocoder --mode yolo run "update README and push"
 ```
 
-If a tool requires approval that the active mode won't grant, nanocoder prints `Tool approval required for: ...` and exits with status code `1`.
+If a tool requires approval that the active mode won't grant, nanocoder prints `Tool approval required for: ...` and exits with a non-zero status code.
+
+### Semi-Interactive Approvals (`--ask`)
+
+You usually can't predict which tools a prompt will trigger, so a run meant for automation can die on its first approval. `--ask` makes the run semi-interactive: when a tool call needs approval, nanocoder prompts on the terminal instead of exiting.
+
+```bash
+nanocoder run --ask "update the changelog and commit it"
+```
+
+```
+Tool approval required: execute_bash
+  {"command":"git commit -am 'update changelog'"}
+Approve? [y] yes once  [n] no:
+```
+
+- **`y`** — run this call only; you'll be asked again next time.
+- **`n`** — skip this call; the model is told it was cancelled and can adapt.
+
+To make a recurring command fully non-interactive, add the tools it needs to `alwaysAllow` in `agents.config.json` — see [Tool Auto-Approval](../configuration/index.md#tool-auto-approval) for the config format.
+
+`--ask` is only valid with `run`, implies `--plain`, and requires an interactive terminal — with stdin piped or in CI it exits immediately with an error. Prompts are written to stderr, so redirecting stdout (`nanocoder run --ask "..." > out.md`) still works. Answers are never persisted anywhere — each run starts fresh.

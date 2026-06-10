@@ -52,6 +52,7 @@ nanocoder -h
 | `--context-max` | | Set maximum context length in tokens (supports k/K suffix, e.g. `128k`) |
 | `--mode` | | Start in a specific [development mode](../features/development-modes.md) — `normal`, `auto-accept`, `yolo`, or `plan`. Defaults to `normal` for interactive sessions and `auto-accept` for `run` mode. |
 | `--trust-directory` | | Skip the first-run directory trust prompt for this run only. Only valid with `run`; ignored (with a warning) in interactive mode. The trust is ephemeral — `trustedDirectories` in your preferences file is not modified. |
+| `--ask` | | Semi-interactive run: when a tool needs approval, prompt on the terminal to approve or deny it. Only valid with `run`; implies `--plain` and requires an interactive stdin. |
 | `run` | | Run in non-interactive mode |
 
 **Provider/Model Flags:**

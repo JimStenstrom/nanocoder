@@ -345,6 +345,246 @@ test('unknown tool produces an error result that is fed back to the model', asyn
 	t.is(outcome.kind, 'success');
 });
 
+test('approvalPrompter approve runs the tool', async t => {
+	const toolCall: ToolCall = {
+		id: 'call-1',
+		function: {name: 'risky_tool', arguments: {}},
+	};
+	const client = makeFakeClient({
+		responses: [
+			{
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '',
+							tool_calls: [toolCall],
+						},
+					},
+				],
+			},
+			{
+				choices: [{message: {role: 'assistant', content: 'done'}}],
+			},
+		],
+	});
+	const toolManager = makeFakeToolManager({
+		knownTools: new Set(['risky_tool']),
+		needsApprovalByName: {risky_tool: true},
+	});
+	let handlerCalls = 0;
+	setToolRegistryGetter(() => ({
+		risky_tool: (async () => {
+			handlerCalls++;
+			return 'tool-output';
+		}) as ToolHandler,
+	}));
+	const prompted: string[] = [];
+
+	const outcome = await runPlainConversation({
+		client,
+		toolManager,
+		systemMessage: SYSTEM,
+		initialMessages: [USER],
+		developmentMode: 'auto-accept',
+		nonInteractiveAlwaysAllow: [],
+		abortSignal: new AbortController().signal,
+		approvalPrompter: async tc => {
+			prompted.push(tc.function.name);
+			return 'approve';
+		},
+	});
+
+	t.is(outcome.kind, 'success');
+	t.is(handlerCalls, 1);
+	t.deepEqual(prompted, ['risky_tool']);
+});
+
+test('approvalPrompter deny skips the tool and feeds a cancellation result back', async t => {
+	const toolCall: ToolCall = {
+		id: 'call-1',
+		function: {name: 'risky_tool', arguments: {}},
+	};
+	const seenMessages: Message[][] = [];
+	let callIndex = 0;
+	const responses = [
+		{
+			choices: [
+				{
+					message: {
+						role: 'assistant' as const,
+						content: '',
+						tool_calls: [toolCall],
+					},
+				},
+			],
+		},
+		{
+			choices: [{message: {role: 'assistant' as const, content: 'adapted'}}],
+		},
+	];
+	const client = {
+		getTimeout: () => undefined,
+		chat: async (messages: Message[]) => {
+			seenMessages.push(messages);
+			return responses[callIndex++];
+		},
+	} as unknown as LLMClient;
+	const toolManager = makeFakeToolManager({
+		knownTools: new Set(['risky_tool']),
+		needsApprovalByName: {risky_tool: true},
+	});
+	let handlerCalls = 0;
+	setToolRegistryGetter(() => ({
+		risky_tool: (async () => {
+			handlerCalls++;
+			return 'tool-output';
+		}) as ToolHandler,
+	}));
+
+	const outcome = await runPlainConversation({
+		client,
+		toolManager,
+		systemMessage: SYSTEM,
+		initialMessages: [USER],
+		developmentMode: 'auto-accept',
+		nonInteractiveAlwaysAllow: [],
+		abortSignal: new AbortController().signal,
+		approvalPrompter: async () => 'deny',
+	});
+
+	t.is(outcome.kind, 'success');
+	t.is(handlerCalls, 0);
+	const secondTurnMessages = seenMessages[1];
+	const cancellation = secondTurnMessages.find(
+		message => message.role === 'tool',
+	);
+	t.truthy(cancellation);
+	t.regex(String(cancellation?.content), /cancelled by the user/);
+});
+
+test('approvalPrompter approve covers one call only: the same tool prompts again', async t => {
+	const firstCall: ToolCall = {
+		id: 'call-1',
+		function: {name: 'risky_tool', arguments: {}},
+	};
+	const secondCall: ToolCall = {
+		id: 'call-2',
+		function: {name: 'risky_tool', arguments: {}},
+	};
+	const client = makeFakeClient({
+		responses: [
+			{
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '',
+							tool_calls: [firstCall],
+						},
+					},
+				],
+			},
+			{
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '',
+							tool_calls: [secondCall],
+						},
+					},
+				],
+			},
+			{
+				choices: [{message: {role: 'assistant', content: 'done'}}],
+			},
+		],
+	});
+	const toolManager = makeFakeToolManager({
+		knownTools: new Set(['risky_tool']),
+		needsApprovalByName: {risky_tool: true},
+	});
+	let handlerCalls = 0;
+	setToolRegistryGetter(() => ({
+		risky_tool: (async () => {
+			handlerCalls++;
+			return 'tool-output';
+		}) as ToolHandler,
+	}));
+	let prompts = 0;
+
+	const outcome = await runPlainConversation({
+		client,
+		toolManager,
+		systemMessage: SYSTEM,
+		initialMessages: [USER],
+		developmentMode: 'auto-accept',
+		nonInteractiveAlwaysAllow: [],
+		abortSignal: new AbortController().signal,
+		approvalPrompter: async () => {
+			prompts++;
+			return 'approve';
+		},
+	});
+
+	t.is(outcome.kind, 'success');
+	t.is(handlerCalls, 2);
+	t.is(prompts, 2);
+});
+
+test('approvalPrompter failure falls back to tool-approval-required', async t => {
+	const toolCall: ToolCall = {
+		id: 'call-1',
+		function: {name: 'risky_tool', arguments: {}},
+	};
+	const client = makeFakeClient({
+		responses: [
+			{
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '',
+							tool_calls: [toolCall],
+						},
+					},
+				],
+			},
+		],
+	});
+	const toolManager = makeFakeToolManager({
+		knownTools: new Set(['risky_tool']),
+		needsApprovalByName: {risky_tool: true},
+	});
+	let handlerCalls = 0;
+	setToolRegistryGetter(() => ({
+		risky_tool: (async () => {
+			handlerCalls++;
+			return 'tool-output';
+		}) as ToolHandler,
+	}));
+
+	const outcome = await runPlainConversation({
+		client,
+		toolManager,
+		systemMessage: SYSTEM,
+		initialMessages: [USER],
+		developmentMode: 'auto-accept',
+		nonInteractiveAlwaysAllow: [],
+		abortSignal: new AbortController().signal,
+		approvalPrompter: async () => {
+			throw new Error('stdin closed');
+		},
+	});
+
+	t.is(outcome.kind, 'tool-approval-required');
+	if (outcome.kind === 'tool-approval-required') {
+		t.deepEqual(outcome.toolNames, ['risky_tool']);
+	}
+	t.is(handlerCalls, 0);
+});
+
 test('aborted signal short-circuits with an error outcome', async t => {
 	const client = makeFakeClient({
 		responses: [

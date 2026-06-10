@@ -675,7 +675,7 @@ export const processAssistantResponse = async (
 		if (confirmTools.length > 0 && nonInteractiveMode) {
 			await flushAll();
 			const toolNames = confirmTools.map(tc => tc.function.name).join(', ');
-			const errorMsg = `Tool approval required for: ${toolNames}. Exiting non-interactive mode`;
+			const errorMsg = `Tool approval required for: ${toolNames}. Exiting non-interactive mode (re-run with --ask to approve interactively)`;
 			addToChatQueue(
 				<ErrorMessage
 					key={generateKey('tool-approval-required')}
