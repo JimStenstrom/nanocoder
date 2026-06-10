@@ -160,6 +160,26 @@ export function updateReasoningExpanded(value: boolean): void {
 }
 
 /**
+ * Get the auto-fix diagnostics preference: after the model edits files,
+ * automatically collect LSP diagnostics for them and ask the model to fix
+ * any reported errors before its response ends. Defaults to true (the
+ * check is a silent no-op when no diagnostics source is available).
+ */
+export function getAutoFixDiagnostics(): boolean {
+	const preferences = loadPreferences();
+	return preferences.autoFixDiagnostics ?? true;
+}
+
+/**
+ * Save the auto-fix diagnostics preference
+ */
+export function updateAutoFixDiagnostics(value: boolean): void {
+	const preferences = loadPreferences();
+	preferences.autoFixDiagnostics = value;
+	savePreferences(preferences);
+}
+
+/**
  * Get the compact tool display preference from preferences or environment
  */
 export function getCompactToolDisplay(): boolean {

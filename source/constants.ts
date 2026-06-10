@@ -19,6 +19,9 @@ export const TIMEOUT_UPDATE_CHECK_MS = 10_000;
 export const TIMEOUT_SOCKET_DEFAULT_MS = 120_000;
 export const TIMEOUT_SOCKET_LOCAL_DEFAULT_MS = 600_000; // 10 minutes for local models (Ollama, etc.)
 export const TIMEOUT_LSP_DIAGNOSTICS_MS = 5000;
+// Total time budget for the post-edit auto-diagnostics check (shared across
+// all files edited in a turn, so a many-file edit can't stack per-file waits).
+export const TIMEOUT_AUTO_DIAGNOSTICS_MS = 3000;
 
 // === PASTE DETECTION ===
 export const PASTE_CHUNK_BASE_WINDOW_MS = 500;
@@ -124,6 +127,13 @@ export const MAX_EMPTY_TURNS = 2;
 // bad XML loops async and appends two messages per iteration until Node's
 // heap exhausts (~1.4GB).
 export const MAX_MALFORMED_RETRIES = 2;
+// Cap how many consecutive auto-diagnostics fix-up rounds get injected per
+// user turn, so a model that can't fix the reported errors doesn't loop
+// forever. The counter resets once a post-edit check comes back clean.
+export const MAX_AUTO_DIAGNOSTIC_ROUNDS = 2;
+// Cap how many individual errors the injected auto-diagnostics message lists
+// (token hygiene — one broken edit can cascade into hundreds of errors).
+export const MAX_AUTO_DIAGNOSTIC_ERRORS = 20;
 
 // === MCP ===
 export const TIMEOUT_MCP_DEFAULT_MS = 30_000;

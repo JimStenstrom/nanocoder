@@ -400,4 +400,7 @@ export interface UserPreferences {
 	paste?: PasteConfig;
 	reasoningExpanded?: boolean;
 	compactToolDisplay?: boolean;
+	// Auto-run LSP diagnostics after file edits and ask the model to fix
+	// reported errors before its response ends. Defaults to true.
+	autoFixDiagnostics?: boolean;
 }

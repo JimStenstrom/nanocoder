@@ -7,11 +7,13 @@ import {StyledSelectInput} from '@/components/ui/styled-select-input';
 import type {TitleShape} from '@/components/ui/styled-title';
 import {TitledBoxWithPreferences} from '@/components/ui/titled-box';
 import {
+	getAutoFixDiagnostics,
 	getCompactToolDisplay,
 	getNanocoderShape,
 	getNotificationsPreference,
 	getPasteThreshold,
 	getReasoningExpanded,
+	updateAutoFixDiagnostics,
 	updateCompactToolDisplay,
 	updateNanocoderShape,
 	updateNotificationsPreference,
@@ -36,6 +38,7 @@ type SettingsStep =
 	| 'paste-threshold'
 	| 'notifications'
 	| 'display-settings'
+	| 'agent-behavior'
 	| 'done';
 
 interface SettingsSelectorProps {
@@ -89,6 +92,11 @@ function SettingsMainMenu({
 			label: 'Tool Results and Thinking',
 			value: 'display-settings',
 			description: 'Set defaults for model thoughts and tool results',
+		},
+		{
+			label: 'Agent Behavior',
+			value: 'agent-behavior',
+			description: 'Auto-fix errors after file edits',
 		},
 		{
 			label: 'Done',
@@ -963,6 +971,81 @@ function SettingsDisplayPanel({
 	);
 }
 
+// Agent behavior settings panel
+function SettingsAgentBehaviorPanel({
+	onBack,
+	onCancel,
+}: {
+	onBack: () => void;
+	onCancel: () => void;
+}) {
+	const {boxWidth, isNarrow} = useResponsiveTerminal();
+	const {colors} = useTheme();
+
+	const currentAutoFixDiagnostics = getAutoFixDiagnostics();
+
+	useInput((_, key) => {
+		if (key.escape) {
+			onCancel();
+		}
+		if (key.shift && key.tab) {
+			onBack();
+		}
+	});
+
+	type ToggleKey = 'autoFixDiagnostics';
+
+	const items: {label: string; value: ToggleKey}[] = useMemo(() => {
+		const isOn = (val: boolean | undefined) => (val ? 'ON' : 'OFF');
+		return [
+			{
+				label: `Auto-fix errors after edits (LSP): ${isOn(
+					currentAutoFixDiagnostics,
+				)}`,
+				value: 'autoFixDiagnostics' as ToggleKey,
+			},
+		];
+	}, [currentAutoFixDiagnostics]);
+
+	const handleSelect = (item: {label: string; value: ToggleKey}) => {
+		if (item.value === 'autoFixDiagnostics') {
+			updateAutoFixDiagnostics(!currentAutoFixDiagnostics);
+		}
+		onBack();
+	};
+
+	const title = isNarrow ? 'Agent' : 'Agent Behavior';
+
+	return (
+		<TitledBoxWithPreferences
+			title={title}
+			width={isNarrow ? '100%' : boxWidth}
+			borderColor={colors.primary}
+			paddingX={2}
+			paddingY={1}
+			flexDirection="column"
+			marginBottom={1}
+		>
+			{!isNarrow && (
+				<Box marginBottom={1}>
+					<Text color={colors.secondary}>
+						When ON, errors reported by the language server (or VS Code) for
+						files the model just edited are sent back automatically so the model
+						fixes them before finishing. Toggle settings with Enter. Shift+Tab
+						to go back, Esc to exit
+					</Text>
+				</Box>
+			)}
+			<StyledSelectInput items={items} onSelect={handleSelect} />
+			{isNarrow && (
+				<Box marginTop={0}>
+					<Text color={colors.secondary}>Enter/Shift+Tab/Esc</Text>
+				</Box>
+			)}
+		</TitledBoxWithPreferences>
+	);
+}
+
 // Main settings selector with step navigation
 export function SettingsSelector({onCancel}: SettingsSelectorProps) {
 	const [step, setStep] = useState<SettingsStep>('main');
@@ -1008,6 +1091,13 @@ export function SettingsSelector({onCancel}: SettingsSelectorProps) {
 		case 'display-settings':
 			return (
 				<SettingsDisplayPanel
+					onBack={() => setStep('main')}
+					onCancel={onCancel}
+				/>
+			);
+		case 'agent-behavior':
+			return (
+				<SettingsAgentBehaviorPanel
 					onBack={() => setStep('main')}
 					onCancel={onCancel}
 				/>

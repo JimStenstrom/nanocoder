@@ -1,5 +1,7 @@
 import test from 'ava';
 import {clearAppConfig, getAppConfig} from '@/config/index.js';
+import {setAutoDiagnosticsCollectorForTesting} from '@/lsp/auto-diagnostics';
+import {setToolRegistryGetter} from '@/message-handler.js';
 import {resetShutdownManager} from '@/utils/shutdown/shutdown-manager.js';
 import {processAssistantResponse, resetFallbackNotice, resetLastTurnHadReasoning} from './conversation-loop.js';
 import type {
@@ -1636,4 +1638,179 @@ test.serial('processAssistantResponse - does not start request on orphaned tool 
 	if (getAppConfig().sessions && originalMaxMessages !== undefined) {
 		getAppConfig().sessions!.maxMessages = originalMaxMessages;
 	}
+});
+// ============================================================================
+// Auto-Diagnostics Injection Tests
+// ============================================================================
+
+// Shared scaffolding: a fake registry whose write_file always succeeds, a
+// client that returns `editTurns` consecutive write_file calls then a
+// terminal text response, and a deterministic collector override.
+const setupAutoDiagnosticsRun = (config: {
+	editTurns: number;
+	outcomes: Array<'errors' | 'clean'>;
+}) => {
+	setToolRegistryGetter(() => ({
+		write_file: async () => 'File written',
+	}));
+
+	let collectorCalls = 0;
+	setAutoDiagnosticsCollectorForTesting(async () => {
+		const outcome = config.outcomes[collectorCalls] ?? 'errors';
+		collectorCalls++;
+		if (outcome === 'clean') {
+			return {status: 'clean'};
+		}
+		return {
+			status: 'errors',
+			content: `[Auto-diagnostics] The language server reported 1 error in files you just edited (check ${collectorCalls}).`,
+			errorCount: 1,
+			fileCount: 1,
+		};
+	});
+
+	let chatCallCount = 0;
+	const messagesSeen: Message[][] = [];
+	const mockClient = {
+		chat: async (msgs: Message[]): Promise<LLMChatResponse> => {
+			chatCallCount++;
+			messagesSeen.push(msgs);
+			if (chatCallCount <= config.editTurns) {
+				return {
+					choices: [
+						{
+							message: {
+								role: 'assistant',
+								content: '',
+								tool_calls: [
+									{
+										id: `edit_${chatCallCount}`,
+										function: {
+											name: 'write_file',
+											arguments: {path: 'src/a.ts', content: 'x'},
+										},
+									},
+								],
+							},
+						},
+					],
+					toolsDisabled: false,
+				};
+			}
+			return {
+				choices: [{message: {role: 'assistant', content: 'Done.'}}],
+				toolsDisabled: false,
+			};
+		},
+	};
+
+	const mockToolManager = {
+		...createMockToolManager({tools: ['write_file'], needsApproval: false}),
+		getToolFormatter: () => undefined,
+	};
+
+	const cleanup = () => {
+		setAutoDiagnosticsCollectorForTesting(null);
+		setToolRegistryGetter(() => ({}));
+	};
+
+	return {
+		mockClient,
+		mockToolManager,
+		messagesSeen,
+		getChatCallCount: () => chatCallCount,
+		getCollectorCalls: () => collectorCalls,
+		cleanup,
+	};
+};
+
+const countInjected = (msgs: Message[]): number =>
+	msgs.filter(
+		m => m.role === 'user' && m.content.startsWith('[Auto-diagnostics]'),
+	).length;
+
+test.serial('processAssistantResponse - auto-diagnostics injects a fix-up message after a failing edit', async t => {
+	const run = setupAutoDiagnosticsRun({editTurns: 1, outcomes: ['errors']});
+	const chatComponents: any[] = [];
+
+	try {
+		const params = createDefaultParams({
+			client: run.mockClient as any,
+			toolManager: run.mockToolManager as any,
+			addToChatQueue: (component: any) => chatComponents.push(component),
+		});
+		await processAssistantResponse(params);
+	} finally {
+		run.cleanup();
+	}
+
+	t.is(run.getChatCallCount(), 2, 'edit turn + fix turn');
+	t.is(run.getCollectorCalls(), 1);
+
+	// The recursive call must see the injected message as the last message,
+	// placed after the tool result.
+	const second = run.messagesSeen[1];
+	t.is(countInjected(second), 1);
+	const last = second[second.length - 1];
+	t.is(last.role, 'user');
+	t.true(last.content.startsWith('[Auto-diagnostics]'));
+	const toolResultIndex = second.findIndex(m => m.role === 'tool');
+	t.true(toolResultIndex !== -1 && toolResultIndex < second.indexOf(last));
+
+	// The user is told why an extra turn is happening.
+	const notice = chatComponents.find(
+		(c: any) =>
+			typeof c?.props?.message === 'string' &&
+			c.props.message.startsWith('Auto-diagnostics:'),
+	);
+	t.truthy(notice, 'should surface an InfoMessage about the injection');
+});
+
+test.serial('processAssistantResponse - auto-diagnostics stops injecting after the per-turn round cap', async t => {
+	// Model edits 3 times in a row; diagnostics never come back clean.
+	// MAX_AUTO_DIAGNOSTIC_ROUNDS = 2 → inject after turns 1 and 2, then stop
+	// checking entirely (3rd edit turn gets no collection and no injection).
+	const run = setupAutoDiagnosticsRun({
+		editTurns: 3,
+		outcomes: ['errors', 'errors', 'errors'],
+	});
+
+	try {
+		const params = createDefaultParams({
+			client: run.mockClient as any,
+			toolManager: run.mockToolManager as any,
+		});
+		await processAssistantResponse(params);
+	} finally {
+		run.cleanup();
+	}
+
+	t.is(run.getChatCallCount(), 4, '3 edit turns + terminal turn');
+	t.is(run.getCollectorCalls(), 2, 'no collection once the cap is reached');
+	const finalMessages = run.messagesSeen[3];
+	t.is(countInjected(finalMessages), 2);
+});
+
+test.serial('processAssistantResponse - auto-diagnostics round counter resets after a clean check', async t => {
+	// errors → clean → errors: the clean check re-arms the cap, so the third
+	// check injects again (counts consecutive failed fixes, not total).
+	const run = setupAutoDiagnosticsRun({
+		editTurns: 3,
+		outcomes: ['errors', 'clean', 'errors'],
+	});
+
+	try {
+		const params = createDefaultParams({
+			client: run.mockClient as any,
+			toolManager: run.mockToolManager as any,
+		});
+		await processAssistantResponse(params);
+	} finally {
+		run.cleanup();
+	}
+
+	t.is(run.getChatCallCount(), 4);
+	t.is(run.getCollectorCalls(), 3, 'clean check must not stop collection');
+	const finalMessages = run.messagesSeen[3];
+	t.is(countInjected(finalMessages), 2, 'injected on the 1st and 3rd checks');
 });

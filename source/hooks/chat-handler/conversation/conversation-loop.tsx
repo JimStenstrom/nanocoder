@@ -4,7 +4,12 @@ import AssistantMessage from '@/components/assistant-message';
 import AssistantReasoning from '@/components/assistant-reasoning';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {getAppConfig} from '@/config/index';
-import {MAX_EMPTY_TURNS, MAX_MALFORMED_RETRIES} from '@/constants';
+import {
+	MAX_AUTO_DIAGNOSTIC_ROUNDS,
+	MAX_EMPTY_TURNS,
+	MAX_MALFORMED_RETRIES,
+} from '@/constants';
+import {getAutoDiagnosticsOutcome} from '@/lsp/auto-diagnostics';
 import {generateKey} from '@/session/key-generator';
 import {
 	parseToolCalls,
@@ -87,6 +92,12 @@ interface ProcessAssistantResponseParams {
 	// have already happened. The malformed branch increments and recurses;
 	// every other recursion site resets to 0.
 	malformedRetryCount?: number;
+	// Number of consecutive auto-diagnostics fix-up messages already injected
+	// in this user turn. Incremented when a post-edit check finds errors and
+	// injects; reset to 0 when a check comes back clean; carried unchanged
+	// (via the params spread) by every other recursion site. Once it reaches
+	// MAX_AUTO_DIAGNOSTIC_ROUNDS, checks are skipped for the rest of the turn.
+	autoDiagnosticRounds?: number;
 }
 
 // Module-level flag: show XML fallback notice only once per process lifetime.
@@ -151,6 +162,7 @@ export const processAssistantResponse = async (
 		developmentModeRef,
 		emptyTurnCount = 0,
 		malformedRetryCount = 0,
+		autoDiagnosticRounds = 0,
 	} = params;
 
 	const startTime = conversationStartTime ?? Date.now();
@@ -756,6 +768,44 @@ export const processAssistantResponse = async (
 		if (turnResults.length > 0) {
 			const builder = new MessageBuilder(updatedMessages);
 			builder.addToolResults(turnResults);
+
+			// Auto-diagnostics: when this turn successfully edited files and a
+			// diagnostics source (VS Code or local LSP) reports errors in them,
+			// inject a clearly-labelled synthetic user message after the tool
+			// results so the model fixes its own errors before the response
+			// ends. Capped per user turn so a model that can't fix an error
+			// doesn't loop forever; a clean check re-arms the cap (it counts
+			// consecutive failed fix attempts). Skipped after a user cancel and
+			// a silent no-op when nothing was edited / no source is available.
+			let nextAutoDiagnosticRounds = autoDiagnosticRounds;
+			if (
+				!controller.signal.aborted &&
+				autoDiagnosticRounds < MAX_AUTO_DIAGNOSTIC_ROUNDS
+			) {
+				const diagnosticsOutcome = await getAutoDiagnosticsOutcome({
+					toolCalls: validToolCalls,
+					results: turnResults,
+				});
+				if (diagnosticsOutcome.status === 'errors') {
+					builder.addUserMessage(diagnosticsOutcome.content);
+					nextAutoDiagnosticRounds = autoDiagnosticRounds + 1;
+					const {errorCount, fileCount} = diagnosticsOutcome;
+					addToChatQueue(
+						<InfoMessage
+							key={generateKey('auto-diagnostics')}
+							message={`Auto-diagnostics: ${errorCount} error${
+								errorCount === 1 ? '' : 's'
+							} in ${fileCount} edited file${
+								fileCount === 1 ? '' : 's'
+							} — asking the model to fix.`}
+							hideBox={true}
+						/>,
+					);
+				} else if (diagnosticsOutcome.status === 'clean') {
+					nextAutoDiagnosticRounds = 0;
+				}
+			}
+
 			const nextMessages = builder.build();
 			setMessages(nextMessages);
 			await processAssistantResponse({
@@ -770,6 +820,7 @@ export const processAssistantResponse = async (
 				conversationStartTime: startTime,
 				emptyTurnCount: 0,
 				malformedRetryCount: 0,
+				autoDiagnosticRounds: nextAutoDiagnosticRounds,
 			});
 			return;
 		}
