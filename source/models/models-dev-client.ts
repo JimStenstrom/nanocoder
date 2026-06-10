@@ -205,6 +205,9 @@ function createModelInfo(
 		contextLimit: model.limit?.context ?? null,
 		outputLimit: model.limit?.output ?? null,
 		supportsToolCalls: model.tool_call ?? false,
+		supportsImageInput:
+			(model.modalities?.input?.includes('image') ?? false) ||
+			(model.attachment ?? false),
 		cost: {
 			input: model.cost?.input ?? 0,
 			output: model.cost?.output ?? 0,
@@ -245,6 +248,24 @@ async function findModelById(modelId: string): Promise<ModelInfo | null> {
 	}
 
 	return bestMatch;
+}
+
+/** Strip the :cloud or -cloud suffix if present (Ollama cloud models). */
+function normalizeModelId(modelId: string): string {
+	return modelId.endsWith(':cloud') || modelId.endsWith('-cloud')
+		? modelId.slice(0, -6)
+		: modelId;
+}
+
+/**
+ * Resolve a model id to its models.dev entry: normalize the id, try an exact
+ * ID match, then fall back to partial name matching. Shared by context-limit
+ * and image-support resolution.
+ */
+async function lookupModelInfo(modelId: string): Promise<ModelInfo | null> {
+	const normalizedModelId = normalizeModelId(modelId);
+	const byId = await findModelById(normalizedModelId);
+	return byId ?? findModelByName(normalizedModelId);
 }
 
 /**
@@ -431,21 +452,10 @@ export async function resolveModelContextLimit(
 			}
 		}
 
-		// Strip :cloud or -cloud suffix if present (Ollama cloud models)
-		const normalizedModelId =
-			modelId.endsWith(':cloud') || modelId.endsWith('-cloud')
-				? modelId.slice(0, -6)
-				: modelId;
+		const normalizedModelId = normalizeModelId(modelId);
 
-		// Try models.dev exact ID match first (primary source)
-		let modelInfo = await findModelById(normalizedModelId);
-
-		// Try models.dev partial name match if exact match fails
-		if (!modelInfo) {
-			modelInfo = await findModelByName(normalizedModelId);
-		}
-
-		// If found in models.dev, return that
+		// Try models.dev (exact ID match first, then partial name match)
+		const modelInfo = await lookupModelInfo(modelId);
 		if (modelInfo) {
 			return {limit: modelInfo.contextLimit, source: 'model-lookup'};
 		}
@@ -478,4 +488,25 @@ export async function getModelContextLimit(
 ): Promise<number | null> {
 	const resolved = await resolveModelContextLimit(modelId, options);
 	return resolved.limit;
+}
+
+/**
+ * Best-effort check whether a model accepts image input, from the cached
+ * models.dev metadata. Returns `null` when the model is unknown (no warning
+ * should be shown in that case) — local/aliased models often aren't listed.
+ */
+export async function getModelImageSupport(
+	modelId: string,
+): Promise<boolean | null> {
+	try {
+		const modelInfo = await lookupModelInfo(modelId);
+		return modelInfo ? modelInfo.supportsImageInput : null;
+	} catch (error) {
+		const logger = getLogger();
+		logger.error(
+			{error: formatError(error), modelId},
+			'Error checking model image support',
+		);
+		return null;
+	}
 }

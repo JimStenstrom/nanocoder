@@ -26,6 +26,13 @@ export const PASTE_CHUNK_MAX_WINDOW_MS = 2000;
 export const PASTE_RAPID_DETECTION_MS = 50;
 export const PASTE_LARGE_CONTENT_THRESHOLD_CHARS = 150;
 
+// === IMAGE ATTACHMENTS ===
+// Raw file size cap per attached image. Matches the strictest common provider
+// per-image limit (Anthropic: 5 MB) and bounds the base64 blowup (~×1.37) the
+// attachment causes in the in-memory conversation and the session JSON.
+export const MAX_IMAGE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_ATTACHMENTS_PER_MESSAGE = 10;
+
 // === CACHE CONFIGURATION ===
 export const CACHE_FILE_TTL_MS = 5000;
 export const CACHE_MODELS_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

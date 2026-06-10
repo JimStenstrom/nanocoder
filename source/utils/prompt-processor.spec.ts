@@ -164,3 +164,24 @@ test('assemblePrompt - handles file with nested path', t => {
 	t.true(result.includes('=== File: file.ts ==='));
 	t.true(result.includes('export const x = 1'));
 });
+
+test('assemblePrompt - keeps the indicator text for image placeholders', t => {
+	const inputState: InputState = {
+		displayValue: 'why is this broken? [Image #1: shot.png]',
+		placeholderContent: {
+			image_1: {
+				type: PlaceholderType.IMAGE,
+				displayText: '[Image #1: shot.png]',
+				filePath: '/tmp/shot.png',
+				mediaType: 'image/png',
+				fileSize: 2048,
+			},
+		},
+	};
+
+	const result = assemblePrompt(inputState);
+
+	// The image bytes travel as an image content part on the message; the
+	// text keeps the compact marker so the model can reference it.
+	t.is(result, 'why is this broken? [Image #1: shot.png]');
+});

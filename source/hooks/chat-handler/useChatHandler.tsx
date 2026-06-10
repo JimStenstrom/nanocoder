@@ -1,12 +1,14 @@
 import React from 'react';
 import {appendToolDefinitionsToPrompt} from '@/ai-sdk-client/tools/system-prompt-assembler';
 import {ConversationStateManager} from '@/app/utils/conversation-state';
+import {WarningMessage} from '@/components/message-box';
 import UserMessage from '@/components/user-message';
 import {getAppConfig} from '@/config/index';
 import {CommandIntegration} from '@/custom-commands/command-integration';
+import {getModelImageSupport} from '@/models/index';
 import {generateKey} from '@/session/key-generator';
 import {getTuneToolMode} from '@/types/config';
-import type {Message} from '@/types/core';
+import type {ImageAttachment, Message} from '@/types/core';
 import {MessageBuilder} from '@/utils/message-builder';
 import {buildSystemPrompt, setLastBuiltPrompt} from '@/utils/prompt-builder';
 import {processAssistantResponse} from './conversation/conversation-loop';
@@ -275,7 +277,11 @@ export function useChatHandler({
 	);
 
 	// Handle chat message processing
-	const handleChatMessage = async (message: string, displayValue?: string) => {
+	const handleChatMessage = async (
+		message: string,
+		displayValue?: string,
+		images?: ImageAttachment[],
+	) => {
 		if (!client || !toolManager) return;
 
 		// Record conversation start time for elapsed time display
@@ -299,9 +305,31 @@ export function useChatHandler({
 
 		// Add user message to conversation history (single addition)
 		const builder = new MessageBuilder(messages);
-		builder.addUserMessage(message);
+		builder.addUserMessage(message, images);
 		const updatedMessages = builder.build();
 		setMessages(updatedMessages);
+
+		// Non-blocking vision advisory: when the message carries images and the
+		// models.dev metadata definitively says the model takes no image
+		// input, tell the user (the request is still sent — provider errors,
+		// if any, surface through the normal error display). Unknown models
+		// stay silent to avoid false alarms for local/aliased names. Fired
+		// without await: a cold models.dev cache would otherwise block the
+		// send on a network fetch.
+		if (images && images.length > 0) {
+			const imageCountLabel = images.length === 1 ? 'image' : 'images';
+			void getModelImageSupport(currentModel).then(supportsImages => {
+				if (supportsImages === false) {
+					addToChatQueue(
+						<WarningMessage
+							key={generateKey('image-support-warning')}
+							message={`${currentModel} may not support image input — sending anyway, but the provider may reject or ignore the ${imageCountLabel}.`}
+							hideBox={true}
+						/>,
+					);
+				}
+			});
+		}
 
 		// Initialize conversation state if this is a new conversation
 		if (messages.length === 0) {

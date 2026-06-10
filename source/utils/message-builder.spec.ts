@@ -162,3 +162,28 @@ test('MessageBuilder builds complete conversation flow', t => {
 	t.is(messages[2].role, 'tool');
 	t.is(messages[2].content, '{"setting": "value"}');
 });
+
+test('MessageBuilder addUserMessage attaches images when provided', t => {
+	const builder = new MessageBuilder([]);
+	const images = [
+		{data: 'aGVsbG8=', mediaType: 'image/png', filename: 'shot.png'},
+	];
+
+	builder.addUserMessage('look at this [Image #1: shot.png]', images);
+	const messages = builder.build();
+
+	t.is(messages.length, 1);
+	t.is(messages[0].role, 'user');
+	t.deepEqual(messages[0].images, images);
+});
+
+test('MessageBuilder addUserMessage omits the images field when empty', t => {
+	const builder = new MessageBuilder([]);
+
+	builder.addUserMessage('no images', []);
+	builder.addUserMessage('also none');
+	const messages = builder.build();
+
+	t.false('images' in messages[0]);
+	t.false('images' in messages[1]);
+});

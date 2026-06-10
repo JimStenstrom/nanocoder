@@ -1,4 +1,11 @@
-import type {AssistantContent, ModelMessage, TextPart, ToolCallPart} from 'ai';
+import type {
+	AssistantContent,
+	ImagePart,
+	ModelMessage,
+	TextPart,
+	ToolCallPart,
+	UserContent,
+} from 'ai';
 import type {Message} from '@/types/index';
 import type {TestableMessage} from '../types.js';
 
@@ -95,6 +102,25 @@ export function convertToModelMessages(messages: Message[]): ModelMessage[] {
 		}
 
 		if (msg.role === 'user') {
+			// Messages with attached images become multimodal content arrays;
+			// plain text keeps the simple string form.
+			if (msg.images && msg.images.length > 0) {
+				const content: UserContent = [];
+				if (msg.content) {
+					content.push({type: 'text', text: msg.content} satisfies TextPart);
+				}
+				for (const image of msg.images) {
+					content.push({
+						type: 'image',
+						image: image.data,
+						mediaType: image.mediaType,
+					} satisfies ImagePart);
+				}
+				return {
+					role: 'user',
+					content,
+				};
+			}
 			return {
 				role: 'user',
 				content: msg.content,

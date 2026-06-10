@@ -61,6 +61,8 @@ export interface ModelInfo {
 	contextLimit: number;
 	outputLimit: number;
 	supportsToolCalls: boolean;
+	/** Whether the model accepts image input (models.dev modalities/attachment). */
+	supportsImageInput: boolean;
 	cost: {
 		input: number;
 		output: number;

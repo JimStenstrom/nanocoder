@@ -30,6 +30,18 @@ export type ToolApprovalPolicy =
 	// biome-ignore lint/suspicious/noExplicitAny: tool args are schema-validated per tool
 	| ((args: any, mode: DevelopmentMode) => boolean | Promise<boolean>);
 
+/**
+ * An image attached to a user message. `data` is the base64-encoded file
+ * contents (no data-URL prefix); `mediaType` is the IANA type derived from the
+ * file extension (e.g. "image/png"). Converted to an AI SDK image content part
+ * at the AI SDK boundary.
+ */
+export interface ImageAttachment {
+	data: string;
+	mediaType: string;
+	filename?: string;
+}
+
 // Current Nanocoder message format (OpenAI-compatible)
 // Note: We maintain this format internally and convert to ModelMessage at AI SDK boundary
 export interface Message {
@@ -43,6 +55,10 @@ export interface Message {
 	// JSON tool result instead of the plain `content` text. `content` remains
 	// the canonical string for display, persistence, and as the fallback.
 	structuredContent?: JSONValue;
+	// For user messages: images attached via the chat input (file path
+	// drag/paste or clipboard grab). Sent to the model as image content parts
+	// alongside the text. Serialized with the session like every other field.
+	images?: ImageAttachment[];
 }
 
 export interface ToolCall {

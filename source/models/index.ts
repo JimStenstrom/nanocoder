@@ -1,5 +1,6 @@
 export {
 	getModelContextLimit,
+	getModelImageSupport,
 	getSessionContextLimit,
 	resetSessionContextLimit,
 	resolveModelContextLimit,

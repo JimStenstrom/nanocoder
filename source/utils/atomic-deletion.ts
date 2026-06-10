@@ -1,4 +1,5 @@
 import type {InputState} from '../types/hooks';
+import {PlaceholderType} from '../types/hooks';
 
 /**
  * Detect if a text change represents a deletion that should be atomic
@@ -51,6 +52,36 @@ export function handleAtomicDeletion(
 		) {
 			// Deletion affects this placeholder - remove it atomically
 			const newDisplayValue = previousText.replace(match[0], '');
+			const newPlaceholderContent = {...previousState.placeholderContent};
+			delete newPlaceholderContent[placeholderId];
+
+			return {
+				displayValue: newDisplayValue,
+				placeholderContent: newPlaceholderContent,
+			};
+		}
+	}
+
+	// Image placeholders ("[Image #1: shot.png]") are looked up by their
+	// stored displayText rather than a regex, since the indicator embeds an
+	// arbitrary filename. Deleting into the indicator removes the whole
+	// attachment — this is the "remove image before send" gesture.
+	for (const [placeholderId, content] of Object.entries(
+		previousState.placeholderContent,
+	)) {
+		if (content.type !== PlaceholderType.IMAGE) continue;
+
+		const placeholderStart = previousText.indexOf(content.displayText);
+		if (placeholderStart === -1) continue;
+		const placeholderEnd = placeholderStart + content.displayText.length;
+		const deletionEnd = deletionStart + deletedChars;
+
+		if (
+			(deletionStart >= placeholderStart && deletionStart < placeholderEnd) ||
+			(deletionEnd > placeholderStart && deletionEnd <= placeholderEnd) ||
+			(deletionStart <= placeholderStart && deletionEnd >= placeholderEnd)
+		) {
+			const newDisplayValue = previousText.replace(content.displayText, '');
 			const newPlaceholderContent = {...previousState.placeholderContent};
 			delete newPlaceholderContent[placeholderId];
 

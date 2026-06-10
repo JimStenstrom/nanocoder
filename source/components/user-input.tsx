@@ -4,25 +4,41 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {commandRegistry} from '@/commands';
 import {DevelopmentModeIndicator} from '@/components/development-mode-indicator';
 import TextInput from '@/components/text-input';
+import {MAX_IMAGE_ATTACHMENTS_PER_MESSAGE} from '@/constants';
 import {useInputState} from '@/hooks/useInputState';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {useUIStateContext} from '@/hooks/useUIState';
 import {promptHistory} from '@/prompt-history';
 import type {TuneConfig} from '@/types/config';
-import type {ContextSource, DevelopmentMode} from '@/types/core';
+import type {
+	ContextSource,
+	DevelopmentMode,
+	ImageAttachment,
+} from '@/types/core';
 import type {InputState} from '@/types/hooks';
 import {Completion} from '@/types/index';
+import {captureClipboardImage} from '@/utils/clipboard-image';
 import {
 	getCurrentFileMention,
 	getFileCompletions,
 } from '@/utils/file-autocomplete';
 import {handleFileMention} from '@/utils/file-mention-handler';
+import {
+	addImagePlaceholder,
+	collectImageAttachments,
+	detectTrailingImagePathToken,
+	validateImageFile,
+} from '@/utils/image-attachments';
 import {assemblePrompt} from '@/utils/prompt-processor';
 import type {ActiveEditorState} from '@/vscode/vscode-server';
 
 interface ChatProps {
-	onSubmit?: (message: string, displayValue: string) => void;
+	onSubmit?: (
+		message: string,
+		displayValue: string,
+		images?: ImageAttachment[],
+	) => void;
 	placeholder?: string;
 	customCommands?: string[]; // List of custom command names and aliases
 	disabled?: boolean; // Disable input when AI is processing
@@ -77,6 +93,16 @@ export default function UserInput({
 		Array<{path: string; score: number}>
 	>([]);
 	const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+	// Transient image-attachment status shown under the input (cleared on the
+	// next keystroke). Used for clipboard/attach failures and skip warnings.
+	const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
+	// Guards against double-submit (Enter during the async attachment read)
+	// and overlapping clipboard captures.
+	const isSubmittingRef = useRef(false);
+	const isCapturingClipboardRef = useRef(false);
+	// Previous input length, to tell paste/drag insertions (multi-char jumps)
+	// from single keystrokes for image-path auto-attachment.
+	const prevInputLengthRef = useRef(0);
 
 	const {
 		input,
@@ -178,6 +204,85 @@ export default function UserInput({
 		void runFileAutocomplete();
 	}, [input]);
 
+	// Auto-attach an image when the input ends with an existing image file
+	// path. Drag-and-drop and paste insert the path as a multi-char chunk;
+	// typed paths attach once followed by whitespace (or on submit, below).
+	// The path token is replaced with a compact "[Image #N: name.png]"
+	// indicator backed by an IMAGE placeholder.
+	useEffect(() => {
+		const previousLength = prevInputLengthRef.current;
+		prevInputLengthRef.current = input.length;
+
+		const isMultiCharInsertion = input.length - previousLength > 1;
+		const endsWithWhitespace = /\s$/.test(input);
+		if (!isMultiCharInsertion && !endsWithWhitespace) return;
+
+		const token = detectTrailingImagePathToken(input);
+		if (!token) return;
+
+		let cancelled = false;
+		const attach = async () => {
+			const validated = await validateImageFile(token.filePath);
+			// Drop the result if the input moved on or a submit is in flight
+			// (the submit path does its own late attach of trailing tokens) —
+			// otherwise this could resurrect the input box after it was reset.
+			if (cancelled || isSubmittingRef.current) return;
+			if (!validated.ok) {
+				// A nonexistent path is just text the user wrote; only surface
+				// failures where the file clearly exists but cannot attach.
+				if (validated.reason === 'too-large') {
+					setAttachmentNotice(validated.message);
+				}
+				return;
+			}
+			const next = addImagePlaceholder(currentState, validated, token.raw);
+			if (!next) {
+				setAttachmentNotice(
+					`Too many images (max ${MAX_IMAGE_ATTACHMENTS_PER_MESSAGE} per message)`,
+				);
+				return;
+			}
+			setInputState(next);
+			setTextInputKey(prev => prev + 1);
+			setAttachmentNotice(null);
+		};
+		void attach();
+		return () => {
+			cancelled = true;
+		};
+	}, [input, currentState, setInputState]);
+
+	// Attach an image from the OS clipboard (Ctrl+V). The clipboard bitmap is
+	// written to a temp PNG and attached like a dropped file.
+	const handleClipboardAttach = useCallback(async () => {
+		if (isCapturingClipboardRef.current) return;
+		isCapturingClipboardRef.current = true;
+		try {
+			const result = await captureClipboardImage();
+			if (!result.ok) {
+				setAttachmentNotice(result.message);
+				return;
+			}
+			const validated = await validateImageFile(result.filePath);
+			if (!validated.ok) {
+				setAttachmentNotice(validated.message);
+				return;
+			}
+			const next = addImagePlaceholder(currentState, validated, null);
+			if (!next) {
+				setAttachmentNotice(
+					`Too many images (max ${MAX_IMAGE_ATTACHMENTS_PER_MESSAGE} per message)`,
+				);
+				return;
+			}
+			setInputState(next);
+			setTextInputKey(prev => prev + 1);
+			setAttachmentNotice(null);
+		} finally {
+			isCapturingClipboardRef.current = false;
+		}
+	}, [currentState, setInputState]);
+
 	// Calculate command completions using useMemo to prevent flashing
 	const commandCompletions = useMemo(() => {
 		if (!isCommandMode || isFileAutocompleteMode) {
@@ -265,17 +370,55 @@ export default function UserInput({
 
 	// Handle form submission
 	const handleSubmit = useCallback(() => {
-		if (input.trim() && onSubmit) {
+		if (!input.trim() || !onSubmit || isSubmittingRef.current) {
+			return;
+		}
+		isSubmittingRef.current = true;
+
+		const submit = async () => {
+			// Late attachment: a typed-out image path with no trailing
+			// whitespace only becomes an attachment when Enter is pressed.
+			let state = currentState;
+			const token = detectTrailingImagePathToken(state.displayValue);
+			if (token) {
+				const validated = await validateImageFile(token.filePath);
+				if (validated.ok) {
+					state = addImagePlaceholder(state, validated, token.raw) ?? state;
+				}
+			}
+
+			// Read the attached images (placeholders still present in the
+			// input) from disk; vanished/oversized files are skipped with a
+			// notice rather than blocking the message.
+			const {attachments, warnings} = await collectImageAttachments(state);
+			if (warnings.length > 0) {
+				setAttachmentNotice(warnings.join(' · '));
+			}
+
 			// Assemble the full prompt by replacing placeholders with content
-			const fullMessage = assemblePrompt(currentState);
+			const fullMessage = assemblePrompt(state);
 
 			// Save the InputState to history and send assembled message to AI
-			promptHistory.addPrompt(currentState);
-			onSubmit(fullMessage, currentState.displayValue);
+			promptHistory.addPrompt(state);
+			onSubmit(
+				fullMessage,
+				state.displayValue,
+				attachments.length > 0 ? attachments : undefined,
+			);
 			resetInput();
 			resetUIState();
 			promptHistory.resetIndex();
-		}
+		};
+
+		void submit()
+			.catch(() => {
+				// Defensive: a failed attachment read must never crash the app;
+				// the message simply isn't sent and the input stays intact.
+				setAttachmentNotice('Failed to read image attachments — not sent');
+			})
+			.finally(() => {
+				isSubmittingRef.current = false;
+			});
 	}, [input, onSubmit, resetInput, resetUIState, currentState]);
 
 	// Handle escape key logic
@@ -283,6 +426,7 @@ export default function UserInput({
 		if (showClearMessage) {
 			resetInput();
 			resetUIState();
+			setAttachmentNotice(null);
 			onDismissActiveEditor?.();
 			focus('user-input');
 		} else {
@@ -398,6 +542,14 @@ export default function UserInput({
 			return;
 		}
 
+		// Handle ctrl+v to attach an image from the OS clipboard. Terminal
+		// text paste arrives via the terminal's own paste shortcut (Cmd+V /
+		// Ctrl+Shift+V), so the raw Ctrl+V byte is free to claim here.
+		if (key.ctrl && inputChar === 'v') {
+			void handleClipboardAttach();
+			return;
+		}
+
 		// Handle special keys
 		if (key.escape) {
 			handleEscape();
@@ -456,6 +608,11 @@ export default function UserInput({
 		if (showClearMessage) {
 			setShowClearMessage(false);
 			focus('user-input');
+		}
+
+		// Clear transient attachment notices once the user keeps typing
+		if (attachmentNotice) {
+			setAttachmentNotice(null);
 		}
 
 		// Handle return keys for multiline input
@@ -571,6 +728,10 @@ export default function UserInput({
 
 				{showClearMessage && (
 					<Text color={colors.secondary}>Press escape again to clear</Text>
+				)}
+
+				{attachmentNotice && (
+					<Text color={colors.warning}>{attachmentNotice}</Text>
 				)}
 			</Box>
 

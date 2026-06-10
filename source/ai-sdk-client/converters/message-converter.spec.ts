@@ -318,3 +318,81 @@ test('dropOrphanedToolResults drops a tool result lacking a tool_call_id', t => 
 	t.is(result.length, 1);
 	t.is(result[0].role, 'user');
 });
+
+test('convertToModelMessages keeps plain string content for user messages without images', t => {
+	const messages: Message[] = [{role: 'user', content: 'just text'}];
+
+	const result = convertToModelMessages(messages);
+
+	t.is(result.length, 1);
+	t.is(result[0].role, 'user');
+	t.is(result[0].content, 'just text');
+});
+
+test('convertToModelMessages emits text and image parts for user messages with images', t => {
+	const messages: Message[] = [
+		{
+			role: 'user',
+			content: 'what is wrong here? [Image #1: shot.png]',
+			images: [
+				{data: 'aGVsbG8=', mediaType: 'image/png', filename: 'shot.png'},
+				{data: 'd29ybGQ=', mediaType: 'image/jpeg', filename: 'pic.jpg'},
+			],
+		},
+	];
+
+	const result = convertToModelMessages(messages);
+
+	t.is(result.length, 1);
+	t.is(result[0].role, 'user');
+	const content = result[0].content;
+	t.true(Array.isArray(content));
+	if (Array.isArray(content)) {
+		t.is(content.length, 3);
+		t.deepEqual(content[0], {
+			type: 'text',
+			text: 'what is wrong here? [Image #1: shot.png]',
+		});
+		t.deepEqual(content[1], {
+			type: 'image',
+			image: 'aGVsbG8=',
+			mediaType: 'image/png',
+		});
+		t.deepEqual(content[2], {
+			type: 'image',
+			image: 'd29ybGQ=',
+			mediaType: 'image/jpeg',
+		});
+	}
+});
+
+test('convertToModelMessages emits image-only content when text is empty', t => {
+	const messages: Message[] = [
+		{
+			role: 'user',
+			content: '',
+			images: [{data: 'aGVsbG8=', mediaType: 'image/png'}],
+		},
+	];
+
+	const result = convertToModelMessages(messages);
+
+	const content = result[0].content;
+	t.true(Array.isArray(content));
+	if (Array.isArray(content)) {
+		t.is(content.length, 1);
+		t.deepEqual(content[0], {
+			type: 'image',
+			image: 'aGVsbG8=',
+			mediaType: 'image/png',
+		});
+	}
+});
+
+test('convertToModelMessages ignores an empty images array', t => {
+	const messages: Message[] = [{role: 'user', content: 'text', images: []}];
+
+	const result = convertToModelMessages(messages);
+
+	t.is(result[0].content, 'text');
+});

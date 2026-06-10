@@ -47,7 +47,8 @@ export function assemblePrompt(inputState: InputState): string {
 	Object.entries(inputState.placeholderContent).forEach(
 		([placeholderId, placeholderContent]) => {
 			// Each placeholder type can have its own replacement logic
-			let replacementContent = placeholderContent.content || '';
+			// (every switch branch below assigns it)
+			let replacementContent = '';
 
 			// Type-specific content assembly (extensible for future types)
 			switch (placeholderContent.type) {
@@ -82,6 +83,15 @@ export function assemblePrompt(inputState: InputState): string {
 						const footer = '='.repeat(header.length);
 						replacementContent = `${header}\n${placeholderContent.content}\n${footer}`;
 					}
+					break;
+				}
+				case PlaceholderType.IMAGE: {
+					// The image itself travels as an image content part on the
+					// message (see collectImageAttachments); keep the compact
+					// indicator in the text so the model can correlate prose
+					// like "in image 1…" with the attached parts. The user's
+					// surrounding text serves as the image's description.
+					replacementContent = placeholderContent.displayText;
 					break;
 				}
 				default: {

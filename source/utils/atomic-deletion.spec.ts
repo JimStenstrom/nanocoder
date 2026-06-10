@@ -192,3 +192,84 @@ test('atomic deletion works with multiple placeholders', t => {
 		} as PastePlaceholderContent,
 	});
 });
+
+// --- Image placeholders ---
+
+function imageState(): InputState {
+	return {
+		displayValue: 'fix this [Image #1: shot.png] please',
+		placeholderContent: {
+			image_1: {
+				type: PlaceholderType.IMAGE,
+				displayText: '[Image #1: shot.png]',
+				filePath: '/tmp/shot.png',
+				mediaType: 'image/png',
+				fileSize: 1024,
+			},
+		},
+	};
+}
+
+test('handleAtomicDeletion removes an image placeholder when backspaced', t => {
+	const previousState = imageState();
+	// Backspace deleted the closing bracket of the indicator
+	const newText = 'fix this [Image #1: shot.png please';
+
+	const result = handleAtomicDeletion(previousState, newText);
+
+	t.truthy(result);
+	t.is(result!.displayValue, 'fix this  please');
+	t.deepEqual(result!.placeholderContent, {});
+});
+
+test('handleAtomicDeletion removes an image placeholder deleted from the middle', t => {
+	const previousState = imageState();
+	// A selection delete removed part of the indicator's interior
+	const newText = 'fix this [Image # shot.png] please';
+
+	const result = handleAtomicDeletion(previousState, newText);
+
+	t.truthy(result);
+	t.is(result!.displayValue, 'fix this  please');
+	t.deepEqual(result!.placeholderContent, {});
+});
+
+test('handleAtomicDeletion leaves image placeholders alone for outside deletions', t => {
+	const previousState = imageState();
+	// Deleted the trailing "e" of "please" — nowhere near the indicator
+	const newText = 'fix this [Image #1: shot.png] pleas';
+
+	const result = handleAtomicDeletion(previousState, newText);
+
+	t.is(result, null);
+});
+
+test('handleAtomicDeletion keeps other image placeholders intact', t => {
+	const previousState: InputState = {
+		displayValue: '[Image #1: a.png] and [Image #2: b.png]',
+		placeholderContent: {
+			image_1: {
+				type: PlaceholderType.IMAGE,
+				displayText: '[Image #1: a.png]',
+				filePath: '/tmp/a.png',
+				mediaType: 'image/png',
+				fileSize: 1,
+			},
+			image_2: {
+				type: PlaceholderType.IMAGE,
+				displayText: '[Image #2: b.png]',
+				filePath: '/tmp/b.png',
+				mediaType: 'image/png',
+				fileSize: 2,
+			},
+		},
+	};
+	// Backspaced into the second indicator
+	const newText = '[Image #1: a.png] and [Image #2: b.png';
+
+	const result = handleAtomicDeletion(previousState, newText);
+
+	t.truthy(result);
+	t.is(result!.displayValue, '[Image #1: a.png] and ');
+	t.deepEqual(Object.keys(result!.placeholderContent), ['image_1']);
+});
