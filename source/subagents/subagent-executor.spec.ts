@@ -1,7 +1,11 @@
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'ava';
 import {SubagentExecutor} from './subagent-executor.js';
 import {getModelContextLimit} from '@/models';
 import {SubagentLoader, getSubagentLoader} from './subagent-loader.js';
+import {clearAppConfig} from '@/config/index';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, LLMChatResponse} from '@/types/core';
 import {setGlobalToolApprovalHandler} from '@/utils/tool-approval-queue';
@@ -157,6 +161,9 @@ test.serial('executes tool calls and returns final response', async t => {
 });
 
 test.serial('tools needing approval are surfaced via signalToolApproval', async t => {
+	// Pin an empty alwaysAllow list — an ambient list containing write_file
+	// would short-circuit approval and this test would never see the request.
+	isolateConfig(t, []);
 	const writeHandler = async () => 'written';
 	const toolManager = createMockToolManager({
 		write_file: {handler: writeHandler, readOnly: false, needsApproval: true},
@@ -740,7 +747,11 @@ test.serial('subagent model can use provider-scoped context window override', as
 	t.is(limit, 131072);
 });
 
-test('mode resolver overrides the static parentMode and is read live', async t => {
+test.serial('mode resolver overrides the static parentMode and is read live', async t => {
+	// Pin an empty alwaysAllow list: the approval decision now consults the
+	// config, and an ambient list containing execute_bash would mask the
+	// mode-fallback behavior this test asserts.
+	isolateConfig(t, []);
 	const toolManager = createMockToolManager({
 		execute_bash: {handler: async () => 'ok', readOnly: false, needsApproval: true},
 	});
@@ -786,4 +797,107 @@ test('without a resolver, approval falls back to the static parentMode', async t
 	}).needsApprovalForTool('execute_bash', {});
 
 	t.false(await needsApproval);
+});
+
+/**
+ * Point config resolution at a throwaway directory whose agents.config.json
+ * holds exactly the given alwaysAllow list, for the duration of one test.
+ *
+ * Both lookup roots are redirected: the loader consults process.cwd() before
+ * NANOCODER_CONFIG_DIR, so a developer's own gitignored agents.config.json at
+ * the repo root would otherwise shadow the injected config. Callers must be
+ * `test.serial` (cwd, env, and the config cache are process-global).
+ */
+function isolateConfig(
+	t: {teardown: (fn: () => void) => void},
+	alwaysAllow: string[],
+): void {
+	const prevCwd = process.cwd();
+	const prevDir = process.env.NANOCODER_CONFIG_DIR;
+	const dir = mkdtempSync(join(tmpdir(), 'nanocoder-subagent-allow-'));
+	t.teardown(() => {
+		process.chdir(prevCwd);
+		if (prevDir === undefined) {
+			delete process.env.NANOCODER_CONFIG_DIR;
+		} else {
+			process.env.NANOCODER_CONFIG_DIR = prevDir;
+		}
+		clearAppConfig();
+		rmSync(dir, {recursive: true, force: true});
+	});
+	writeFileSync(
+		join(dir, 'agents.config.json'),
+		JSON.stringify({nanocoder: {alwaysAllow}}),
+	);
+	process.chdir(dir);
+	process.env.NANOCODER_CONFIG_DIR = dir;
+	clearAppConfig();
+}
+
+test.serial(
+	'configured alwaysAllow reaches subagent tool calls (parity with plain/ACP)',
+	async t => {
+		isolateConfig(t, ['subagent_listed_tool']);
+		const toolManager = createMockToolManager({
+			subagent_listed_tool: {
+				handler: async () => 'ok',
+				readOnly: false,
+				needsApproval: true,
+			},
+			execute_bash: {
+				handler: async () => 'ok',
+				readOnly: false,
+				needsApproval: true,
+			},
+		});
+		const client = createMockClient([]);
+		// Parent mode 'normal' would normally gate both tools behind approval.
+		const executor = new SubagentExecutor(
+			toolManager,
+			client,
+			process.cwd(),
+			'normal',
+		);
+		const needsApproval = (name: string) =>
+			(
+				executor as unknown as {
+					needsApprovalForTool: (n: string, a: unknown) => Promise<boolean>;
+				}
+			).needsApprovalForTool(name, {});
+
+		// Listed tool short-circuits to no-approval, matching the documented
+		// semantics the plain and ACP surfaces already honor.
+		t.false(await needsApproval('subagent_listed_tool'));
+		// Control: an unlisted approval-gated tool still needs approval, so the
+		// list is the cause and not a blanket bypass.
+		t.true(await needsApproval('execute_bash'));
+	},
+);
+
+test.serial('plan mode ignores alwaysAllow so tool calls stay gated', async t => {
+	isolateConfig(t, ['subagent_listed_tool']);
+	const toolManager = createMockToolManager({
+		subagent_listed_tool: {
+			handler: async () => 'ok',
+			readOnly: false,
+			needsApproval: true,
+		},
+	});
+	const client = createMockClient([]);
+	// The daemon runs `confirm: true` subscriptions in plan mode and relies on
+	// approval-then-deny to keep the run from mutating anything; the listed
+	// tool must therefore still require approval here.
+	const executor = new SubagentExecutor(
+		toolManager,
+		client,
+		process.cwd(),
+		'plan',
+	);
+	const needsApproval = (
+		executor as unknown as {
+			needsApprovalForTool: (n: string, a: unknown) => Promise<boolean>;
+		}
+	).needsApprovalForTool('subagent_listed_tool', {});
+
+	t.true(await needsApproval);
 });

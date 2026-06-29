@@ -509,9 +509,14 @@ export class SubagentExecutor {
 		toolName: string,
 		rawArguments: unknown,
 	): Promise<boolean> {
+		const mode = this.currentMode();
 		const toolEntry = this.toolManager.getToolEntry(toolName);
 		return resolveToolApproval(toolName, toolEntry, rawArguments, {
-			mode: this.currentMode(),
+			mode,
+			// Honor the configured alwaysAllow list (parity with the plain and
+			// ACP surfaces) — except in plan mode, where deny-by-default is what
+			// keeps a triggered `confirm: true` run from executing mutating tools.
+			alwaysAllow: mode === 'plan' ? undefined : getAppConfig().alwaysAllow,
 		});
 	}
 
