@@ -1,6 +1,7 @@
 import {readFileSync, writeFileSync} from 'fs';
 import type {TitleShape} from '@/components/ui/styled-title';
 import {getClosestConfigFile} from '@/config/index';
+import {MAX_CONFIGURABLE_BOX_WIDTH, MIN_BOX_WIDTH} from '@/constants';
 import type {TuneConfig} from '@/types/config';
 import type {UserPreferences} from '@/types/index';
 import type {NanocoderShape, ThemePreset} from '@/types/ui';
@@ -140,6 +141,26 @@ export function updatePasteThreshold(threshold: number): void {
 		preferences.paste.singleLineThreshold = Math.round(threshold);
 	}
 	savePreferences(preferences);
+}
+
+/**
+ * Get the configured maximum box width, in columns.
+ *
+ * Returns undefined when unset or unusable (non-numeric, non-finite, or at or
+ * below the minimum box width) so callers fall back to DEFAULT_MAX_BOX_WIDTH.
+ * An override may raise the cap but not remove it: values above
+ * MAX_CONFIGURABLE_BOX_WIDTH are clamped down to it.
+ */
+export function getMaxTerminalWidth(): number | undefined {
+	const maxWidth = loadPreferences().terminal?.maxWidth;
+	if (typeof maxWidth !== 'number' || !Number.isFinite(maxWidth)) {
+		return undefined;
+	}
+	const rounded = Math.round(maxWidth);
+	if (rounded <= MIN_BOX_WIDTH) {
+		return undefined;
+	}
+	return Math.min(rounded, MAX_CONFIGURABLE_BOX_WIDTH);
 }
 
 /**

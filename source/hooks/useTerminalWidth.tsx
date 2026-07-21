@@ -1,11 +1,37 @@
 import {useEffect, useState} from 'react';
-import {DEFAULT_TERMINAL_COLUMNS} from '@/constants';
+import {getMaxTerminalWidth} from '@/config/preferences';
+import {
+	DEFAULT_MAX_BOX_WIDTH,
+	DEFAULT_TERMINAL_COLUMNS,
+	MIN_BOX_WIDTH,
+} from '@/constants';
 
 type TerminalSize = 'narrow' | 'normal' | 'wide';
 
+// The configured cap is resolved once and memoized. computeWidth() runs on
+// every resize and on every consumer's first render — and there are dozens of
+// consumers — while loadPreferences() reads the preferences file on each call.
+// Resolved lazily rather than at module scope so merely importing this module
+// doesn't touch the filesystem. A change to the preference takes effect on the
+// next start, which is the same contract as the other rendering preferences.
+let cachedMaxBoxWidth: number | null = null;
+
+const getMaxBoxWidth = (): number => {
+	if (cachedMaxBoxWidth === null) {
+		cachedMaxBoxWidth = getMaxTerminalWidth() ?? DEFAULT_MAX_BOX_WIDTH;
+	}
+	return cachedMaxBoxWidth;
+};
+
+// Exported for tests: drops the memoized cap so a newly written preferences
+// file takes effect within a single process.
+export function resetMaxBoxWidthCache(): void {
+	cachedMaxBoxWidth = null;
+}
+
 // Calculate box width (leave some padding and ensure minimum width)
 const calculateBoxWidth = (columns: number) =>
-	Math.max(Math.min(columns - 4, 120), 40);
+	Math.max(Math.min(columns - 4, getMaxBoxWidth()), MIN_BOX_WIDTH);
 
 const computeWidth = () =>
 	calculateBoxWidth(process.stdout.columns || DEFAULT_TERMINAL_COLUMNS);

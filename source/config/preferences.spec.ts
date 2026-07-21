@@ -5,6 +5,7 @@ import test from 'ava';
 import {
 	getCompactToolDisplay,
 	getLastUsedModel,
+	getMaxTerminalWidth,
 	getNanocoderShape,
 	getNotificationsPreference,
 	getPasteThreshold,
@@ -1556,6 +1557,139 @@ test.serial('full workflow: update and retrieve privacy preference', t => {
 		updatePrivacyPreference(false);
 		const retrieved2 = getPrivacyPreference();
 		t.is(retrieved2, false);
+	} finally {
+		if (existsSync(preferencesPath)) {
+			rmSync(preferencesPath, {force: true});
+		}
+	}
+});
+
+// ============================================================================
+// getMaxTerminalWidth Tests
+// ============================================================================
+
+test.serial('getMaxTerminalWidth returns width from terminal.maxWidth', t => {
+	const preferencesPath = getTestPreferencesPath();
+	const data: UserPreferences = {
+		terminal: {
+			maxWidth: 300,
+		},
+	};
+	writeFileSync(preferencesPath, JSON.stringify(data, null, 2), 'utf-8');
+
+	try {
+		t.is(getMaxTerminalWidth(), 300);
+	} finally {
+		if (existsSync(preferencesPath)) {
+			rmSync(preferencesPath, {force: true});
+		}
+	}
+});
+
+test.serial('getMaxTerminalWidth rounds a fractional width', t => {
+	const preferencesPath = getTestPreferencesPath();
+	const data: UserPreferences = {
+		terminal: {
+			maxWidth: 180.6,
+		},
+	};
+	writeFileSync(preferencesPath, JSON.stringify(data, null, 2), 'utf-8');
+
+	try {
+		t.is(getMaxTerminalWidth(), 181);
+	} finally {
+		if (existsSync(preferencesPath)) {
+			rmSync(preferencesPath, {force: true});
+		}
+	}
+});
+
+test.serial('getMaxTerminalWidth returns undefined when terminal is missing', t => {
+	const preferencesPath = getTestPreferencesPath();
+	writeFileSync(
+		preferencesPath,
+		JSON.stringify({lastProvider: 'test'}, null, 2),
+		'utf-8',
+	);
+
+	try {
+		t.is(getMaxTerminalWidth(), undefined);
+	} finally {
+		if (existsSync(preferencesPath)) {
+			rmSync(preferencesPath, {force: true});
+		}
+	}
+});
+
+test.serial('getMaxTerminalWidth returns undefined when file does not exist', t => {
+	const preferencesPath = getTestPreferencesPath();
+	if (existsSync(preferencesPath)) {
+		rmSync(preferencesPath, {force: true});
+	}
+
+	t.is(getMaxTerminalWidth(), undefined);
+});
+
+test.serial('getMaxTerminalWidth rejects widths at or below the minimum', t => {
+	const preferencesPath = getTestPreferencesPath();
+
+	// A cap below the 40-column floor would make the clamp meaningless, so it is
+	// rejected in favour of the default rather than producing a broken layout.
+	for (const maxWidth of [40, 10, 0, -100]) {
+		const data: UserPreferences = {terminal: {maxWidth}};
+		writeFileSync(preferencesPath, JSON.stringify(data, null, 2), 'utf-8');
+		t.is(getMaxTerminalWidth(), undefined, `maxWidth=${maxWidth}`);
+	}
+
+	if (existsSync(preferencesPath)) {
+		rmSync(preferencesPath, {force: true});
+	}
+});
+
+test.serial('getMaxTerminalWidth rejects non-numeric widths', t => {
+	const preferencesPath = getTestPreferencesPath();
+
+	for (const maxWidth of ['wide', null, true, [], {}]) {
+		const data = {terminal: {maxWidth}};
+		writeFileSync(preferencesPath, JSON.stringify(data, null, 2), 'utf-8');
+		t.is(getMaxTerminalWidth(), undefined, `maxWidth=${JSON.stringify(maxWidth)}`);
+	}
+
+	if (existsSync(preferencesPath)) {
+		rmSync(preferencesPath, {force: true});
+	}
+});
+
+test.serial('getMaxTerminalWidth rejects a non-finite width', t => {
+	const preferencesPath = getTestPreferencesPath();
+
+	// Written as a raw string on purpose: JSON has no NaN/Infinity literal, so
+	// JSON.stringify(Infinity) would emit `null` and never reach the
+	// Number.isFinite guard. An overflowing exponent is how a hand-edited
+	// preferences file actually produces Infinity.
+	writeFileSync(preferencesPath, '{"terminal":{"maxWidth":1e400}}', 'utf-8');
+
+	try {
+		t.is(getMaxTerminalWidth(), undefined);
+	} finally {
+		if (existsSync(preferencesPath)) {
+			rmSync(preferencesPath, {force: true});
+		}
+	}
+});
+
+test.serial('getMaxTerminalWidth clamps an excessive width to the ceiling', t => {
+	const preferencesPath = getTestPreferencesPath();
+	const data: UserPreferences = {
+		terminal: {
+			maxWidth: 100000,
+		},
+	};
+	writeFileSync(preferencesPath, JSON.stringify(data, null, 2), 'utf-8');
+
+	try {
+		// An override may raise the cap but not disable it outright.
+		t.is(getMaxTerminalWidth(), 1000);
 	} finally {
 		if (existsSync(preferencesPath)) {
 			rmSync(preferencesPath, {force: true});

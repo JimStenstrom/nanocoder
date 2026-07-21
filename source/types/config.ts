@@ -98,6 +98,15 @@ export interface PasteConfig {
 	singleLineThreshold: number;
 }
 
+// Terminal rendering configuration
+export interface TerminalConfig {
+	// Upper bound on the rendered box width, in columns. Defaults to
+	// DEFAULT_MAX_BOX_WIDTH when unset or unusable — a value at or below
+	// MIN_BOX_WIDTH is ignored rather than clamped, and anything above
+	// MAX_CONFIGURABLE_BOX_WIDTH is clamped down to it.
+	maxWidth?: number;
+}
+
 // Custom system prompt configuration
 export interface SystemPromptConfig {
 	// "replace" overrides the entire built-in prompt; "append" adds to the end.
@@ -415,6 +424,7 @@ export interface UserPreferences {
 	tune?: TuneConfig;
 	notifications?: NotificationsConfig;
 	paste?: PasteConfig;
+	terminal?: TerminalConfig;
 	reasoningExpanded?: boolean;
 	compactToolDisplay?: boolean;
 	enablePromptScrubbing?: boolean;

@@ -47,8 +47,25 @@ export const MAX_WEB_SEARCH_QUERY_LENGTH = 500;
 export const DEFAULT_FIND_FILES_RESULTS = 50;
 export const DEFAULT_SEARCH_RESULTS = 30;
 export const DEFAULT_WEB_SEARCH_RESULTS = 10;
+// Fallback column count used for markdown table layout when stdout reports no
+// size. This is NOT the box-width cap — see DEFAULT_MAX_BOX_WIDTH below.
 export const DEFAULT_TERMINAL_WIDTH = 120;
 export const DEFAULT_TERMINAL_COLUMNS = 80;
+
+// === TERMINAL BOX WIDTH ===
+// Upper bound on the rendered box width. A cap keeps long lines readable, keeps
+// two-column layouts balanced, and stops pathological `process.stdout.columns`
+// values (a non-TTY reporter can claim tens of thousands of columns) from
+// blowing up column math. Override per-user with `terminal.maxWidth` in
+// nanocoder-preferences.json.
+export const DEFAULT_MAX_BOX_WIDTH = 160;
+// Lower bound on the rendered box width, and the floor a configured
+// `terminal.maxWidth` override is clamped to.
+export const MIN_BOX_WIDTH = 40;
+// Absolute ceiling for a configured `terminal.maxWidth`. The cap exists to keep
+// column math bounded, so an override is allowed to raise it but not to disable
+// it outright.
+export const MAX_CONFIGURABLE_BOX_WIDTH = 1000;
 
 // === FILE READING ===
 export const FILE_READ_METADATA_THRESHOLD_LINES = 300;

@@ -1,9 +1,54 @@
-import {useResponsiveTerminal, useTerminalWidth} from './useTerminalWidth.js';
+import {existsSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {
+	resetMaxBoxWidthCache,
+	useResponsiveTerminal,
+	useTerminalWidth,
+} from './useTerminalWidth.js';
 import test from 'ava';
 import {render} from 'ink-testing-library';
 import React from 'react';
+import {resetPreferencesCache} from '@/config/preferences';
+import type {UserPreferences} from '@/types/index';
 
 console.log('\nuseTerminalWidth.spec.tsx');
+
+// Isolate config resolution for the whole file. Without this the box-width
+// assertions would read whichever nanocoder-preferences.json the developer
+// happens to have, so a machine with a configured terminal.maxWidth would fail
+// the default-cap tests.
+const testConfigDir = join(tmpdir(), `nanocoder-width-test-${process.pid}`);
+const preferencesPath = join(testConfigDir, 'nanocoder-preferences.json');
+
+const writePreferences = (preferences: UserPreferences) => {
+	writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2), 'utf-8');
+	resetPreferencesCache();
+	resetMaxBoxWidthCache();
+};
+
+const clearPreferences = () => {
+	if (existsSync(preferencesPath)) {
+		rmSync(preferencesPath, {force: true});
+	}
+	resetPreferencesCache();
+	resetMaxBoxWidthCache();
+};
+
+test.before(() => {
+	process.env.NANOCODER_CONFIG_DIR = testConfigDir;
+	mkdirSync(testConfigDir, {recursive: true});
+	clearPreferences();
+});
+
+test.after.always(() => {
+	if (existsSync(testConfigDir)) {
+		rmSync(testConfigDir, {recursive: true, force: true});
+	}
+	delete process.env.NANOCODER_CONFIG_DIR;
+	resetPreferencesCache();
+	resetMaxBoxWidthCache();
+});
 
 // Helper component to test useTerminalWidth
 function TerminalWidthConsumer({
@@ -46,7 +91,7 @@ test('useTerminalWidth returns calculated box width', t => {
 	);
 
 	t.truthy(capturedWidth);
-	// Box width should be columns - 4, max 120, min 40
+	// Box width should be columns - 4, bounded by the max and min box widths
 	// 100 - 4 = 96
 	t.is(capturedWidth!, 96);
 
@@ -73,9 +118,9 @@ test('useTerminalWidth respects minimum width of 40', t => {
 	process.stdout.columns = originalColumns;
 });
 
-test('useTerminalWidth respects maximum width of 120', t => {
+const renderWidth = (columns: number): number => {
 	const originalColumns = process.stdout.columns;
-	process.stdout.columns = 200; // Very wide terminal
+	process.stdout.columns = columns;
 
 	let capturedWidth: number | null = null;
 
@@ -87,11 +132,59 @@ test('useTerminalWidth respects maximum width of 120', t => {
 		}),
 	);
 
-	t.truthy(capturedWidth);
-	t.is(capturedWidth!, 120); // Should be clamped to maximum
-
 	process.stdout.columns = originalColumns;
+	return capturedWidth!;
+};
+
+test.serial('useTerminalWidth respects the default maximum width', t => {
+	clearPreferences();
+
+	// Far wider than the cap — clamped to DEFAULT_MAX_BOX_WIDTH.
+	t.is(renderWidth(400), 160);
+
+	// The 190-column terminal from the bug report used to be clamped to 120;
+	// it now renders at the cap instead of wasting ~70 columns.
+	t.is(renderWidth(190), 160);
 });
+
+test.serial(
+	'useTerminalWidth uses the full width of a terminal narrower than the cap',
+	t => {
+		clearPreferences();
+
+		// Below the cap the box takes the terminal's full usable width
+		// (columns - 4 padding) rather than being clamped.
+		t.is(renderWidth(150), 146);
+	},
+);
+
+test.serial('useTerminalWidth honors a configured terminal.maxWidth', t => {
+	writePreferences({terminal: {maxWidth: 300}});
+
+	try {
+		t.is(renderWidth(400), 300);
+		// Still bounded by the actual terminal when it is narrower than the cap.
+		t.is(renderWidth(250), 246);
+	} finally {
+		clearPreferences();
+	}
+});
+
+test.serial(
+	'useTerminalWidth falls back to the default for an unusable terminal.maxWidth',
+	t => {
+		// Below the minimum box width and non-numeric are both rejected in favour
+		// of the default rather than producing a broken layout.
+		for (const maxWidth of [10, 'wide', null]) {
+			writePreferences({
+				terminal: {maxWidth: maxWidth as number},
+			});
+			t.is(renderWidth(400), 160, `maxWidth=${JSON.stringify(maxWidth)}`);
+		}
+
+		clearPreferences();
+	},
+);
 
 test('useResponsiveTerminal detects narrow size', t => {
 	const originalColumns = process.stdout.columns;

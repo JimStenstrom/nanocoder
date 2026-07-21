@@ -52,6 +52,31 @@ You can change this via `/settings` → **Paste Threshold**, or by editing the f
 }
 ```
 
+### Terminal Width
+
+Nanocoder caps its rendered width so that long lines stay readable and
+two-column layouts stay balanced. The cap is configurable with the
+`terminal.maxWidth` field:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `terminal.maxWidth` | number | `160` | Maximum width, in columns, of the message and tool boxes that make up the chat interface. The boxes always use the terminal's own width when that is narrower. Values of `40` or below are ignored and the default is used instead; values above `1000` are clamped to `1000`. |
+
+On a terminal narrower than the cap, Nanocoder uses the full terminal width
+(minus a small padding), so this setting only takes effect on very wide
+terminals. Raise it to use more of an ultrawide display, or lower it to keep
+text in a comfortable reading column:
+
+```json
+{
+  "terminal": {
+    "maxWidth": 300
+  }
+}
+```
+
+The new value applies the next time you start Nanocoder.
+
 ### Reasoning Traces
 
 Expanding reasoning traces can also be configured in the preferences file with the `reasoningExpanded` field:
